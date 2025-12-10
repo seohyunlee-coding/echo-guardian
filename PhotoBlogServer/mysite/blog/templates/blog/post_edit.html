@@ -1,0 +1,48 @@
+{% extends 'blog/base.html' %}
+{% block content %}
+
+<div class="form-container">
+  <h2 class="form-title">{{ title }}</h2>
+
+  <form method="post" enctype="multipart/form-data" class="post-form">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="{{ form.title.id_for_label }}" class="form-label">제목</label>
+      {{ form.title }}
+      {% if form.title.errors %}
+      <div class="form-error">{{ form.title.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.text.id_for_label }}" class="form-label">내용</label>
+      {{ form.text }}
+      {% if form.text.errors %}
+      <div class="form-error">{{ form.text.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.image.id_for_label }}" class="form-label">이미지</label>
+      {% if post and post.image %}
+      <div class="current-image">
+        <p>현재 이미지:</p>
+        <img src="{{ post.image.url }}" alt="{{ post.title }}"
+          style="max-width: 200px; height: auto; border-radius: 4px;">
+      </div>
+      {% endif %}
+      {{ form.image }}
+      {% if form.image.errors %}
+      <div class="form-error">{{ form.image.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">저장</button>
+      <a href="{% url 'blog:post_list' %}" class="btn btn-secondary">취소</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

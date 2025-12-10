@@ -24,8 +24,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # include blog app urls so the root URL can render the blog post list
     path('', include('blog.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('api-token-auth/', obtain_auth_token), #added
 ]
 
-urlpatterns += static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

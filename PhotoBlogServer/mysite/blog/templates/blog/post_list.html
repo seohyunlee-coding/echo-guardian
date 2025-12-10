@@ -1,27 +1,46 @@
 {% extends 'blog/base.html' %}
 {% block content %}
 
-{% if posts %}
-{% for post in posts %}
-<section class="hero">
-  {% if post.image %}
-  <img src="{{ post.image.url }}" alt="{{ post.title }}" class="hero-image">
-  {% else %}
-  <div class="hero-image"
-    style="background:#ddd;height:420px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#666">
-    이미지 없음
+<div class="dashboard-header">
+  <div class="dashboard-title-wrap">
+    <h2 class="dashboard-title">최근 포스트 목록</h2>
+    <p class="dashboard-subtitle">최신 신고된 포스트</p>
   </div>
+  {% if user.is_authenticated %}
+  <a href="{% url 'blog:post_new' %}" class="btn btn-create">+ 새 포스트 작성</a>
   {% endif %}
+</div>
 
-  <div class="hero-overlay">
-    <h2 class="hero-title">{{ post.title }}</h2>
-    <p class="hero-text">{{ post.text|truncatechars:200 }}</p>
-    <p class="hero-date">{{ post.published_date|date:"Y년 n월 j일 g:i A" }}</p>
-  </div>
-</section>
-{% endfor %}
+{% if posts %}
+<div class="post-list">
+  {% for post in posts %}
+  <article class="post-card">
+    <a href="{% url 'blog:post_detail' post.pk %}" class="card-link">
+      <div class="card-image-wrap">
+        {% if post.image %}
+        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="card-image">
+        {% else %}
+        <div class="card-image-placeholder">이미지 없음</div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <h3 class="card-title">{{ post.title }}</h3>
+        <p class="card-excerpt">{{ post.text|truncatechars:100 }}</p>
+        <div class="card-meta">
+          <span class="card-date">{{ post.published_date|date:"Y년 n월 j일" }}</span>
+          <span class="card-author">{{ post.author.username }}</span>
+        </div>
+      </div>
+    </a>
+  </article>
+  {% endfor %}
+</div>
 {% else %}
-<p>포스트가 없습니다.</p>
+<div class="empty-state">
+  <div class="empty-icon">📭</div>
+  <p class="empty-text">아직 등록된 포스트가 없습니다</p>
+  <p class="empty-subtext">새 포스트를 등록해주세요</p>
+</div>
 {% endif %}
 
 {% endblock %}
