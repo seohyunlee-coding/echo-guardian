@@ -1,0 +1,1 @@
+- yolo v5 에 기반하여 코드 작성함 yolo v5 에 기반하여 코드 작성함 https://github.com/ultralytics/yolov5
