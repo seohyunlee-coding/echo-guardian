@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Echo Guardian{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/blog.css' %}">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="header-logo">
+        <span class="logo-icon">📷</span>
+        <div class="header-text">
+          <h1 class="site-title">Echo Guardian</h1>
+          <p class="site-subtitle">분리수거 및 무단투기 모니터링 시스템</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+        <span class="user-info">안녕하세요, {{ user.username }}님</span>
+        {% if user.is_staff %}
+        <a href="/admin/" class="logout-btn">관리자</a>
+        {% endif %}
+        <form method="post" action="{% url 'logout' %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="logout-btn">로그아웃</button>
+        </form>
+        {% else %}
+        <a href="{% url 'login' %}" class="logout-btn">로그인</a>
+        <a href="{% url 'blog:register' %}" class="logout-btn btn-register">회원가입</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+
+
+  <main class="container main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <small>&copy; {{ now|date:"Y" }} - Echo Guardian</small>
+    </div>
+  </footer>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>

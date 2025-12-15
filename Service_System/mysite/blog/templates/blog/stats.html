@@ -1,0 +1,29 @@
+{% extends 'blog/base.html' %}
+{% block content %}
+<div class="dashboard-header">
+  <div class="dashboard-title-wrap">
+    <h2 class="dashboard-title">{{ page_title }}</h2>
+    <p class="dashboard-subtitle">감지된 항목을 집계하여 제공합니다.</p>
+  </div>
+  <a href="{% url 'blog:post_list' %}" class="btn btn-secondary">목록으로 돌아가기</a>
+</div>
+
+<div class="post-detail-container">
+  <div style="padding:18px;">
+    {% if counts %}
+    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+      {% for item, cnt in counts %}
+      <li
+        style="padding:12px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;text-transform:capitalize;">{{ item }}</span>
+        <span style="color:var(--brand);font-weight:800;">{{ cnt }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div style="padding:18px;text-align:center;color:var(--text-muted);">집계할 항목이 없습니다.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

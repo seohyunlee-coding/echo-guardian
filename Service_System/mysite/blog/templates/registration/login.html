@@ -1,0 +1,55 @@
+{% extends 'blog/base.html' %}
+{% block title %}로그인{% endblock %}
+{% block content %}
+
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h2 class="auth-title">로그인</h2>
+      <p class="auth-subtitle">에코 가디언에 오신 것을 환영합니다</p>
+    </div>
+
+    {% if form.errors %}
+    <div class="alert alert-error">
+      <p>사용자 이름 또는 비밀번호가 올바르지 않습니다.</p>
+    </div>
+    {% endif %}
+
+    {% if next %}
+    {% if user.is_authenticated %}
+    <div class="alert alert-warning">
+      <p>해당 페이지에 접근 권한이 없습니다.</p>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <p>로그인이 필요합니다.</p>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <form method="post" action="{% url 'login' %}" class="auth-form">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_username" class="form-label">사용자 이름</label>
+        <input type="text" name="username" id="id_username" class="form-control" placeholder="사용자 이름을 입력하세요" required
+          autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="id_password" class="form-label">비밀번호</label>
+        <input type="password" name="password" id="id_password" class="form-control" placeholder="비밀번호를 입력하세요" required>
+      </div>
+
+      <input type="hidden" name="next" value="{{ next }}" />
+
+      <button type="submit" class="btn btn-primary btn-block">로그인</button>
+    </form>
+
+    <div class="auth-footer">
+      <p>계정이 없으신가요? <a href="{% url 'blog:register' %}">회원가입</a></p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
