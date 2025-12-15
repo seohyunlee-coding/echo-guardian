@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/posts/', views.PostList.as_view(), name='api_post_list'),
     path('api/posts/search/', views.PostSearch.as_view(), name='api_post_search'),
     path('api/posts/<int:pk>/', views.PostDetail.as_view(), name='api_post_detail'),
+    path('api/posts/recent/', api_views.api_recent_posts, name='api_post_recent'),
     path('api_root/', include(router.urls)),
     
     

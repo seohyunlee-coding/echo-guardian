@@ -5,6 +5,10 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+from .models import Post
+from .serializers import PostSerializer
 
 
 @api_view(['POST'])
@@ -105,3 +109,15 @@ def api_user_info(request):
         'is_superuser': user.is_superuser,
         'date_joined': user.date_joined
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_recent_posts(request):
+    now = timezone.now()
+    qs = Post.objects.filter(
+        published_date__gte=now - timedelta(minutes=5),
+        published_date__lte=now
+    ).order_by('-published_date')[:5]
+    serializer = PostSerializer(qs, many=True, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)

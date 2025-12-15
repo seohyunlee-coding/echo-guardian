@@ -1,7 +1,24 @@
 {% extends 'blog/base.html' %}
 {% block content %}
 
-<div class="notice-box">
+
+<div class="notice-box" style="margin:6px 0 4px 0; padding:8px 0;"> 
+  <div class="notice-inner"> 
+    <div style="display:flex;align-items:center;gap:12px;"> 
+      <span style="font-weight:600;">⚠️ 신규 발생 신고</span> 
+      <div style="font-size:0.95rem;color:#333;"> 
+        {% if recent_posts %} 
+        {% for r in recent_posts %} 
+        <a href="{% url 'blog:post_detail' r.pk %}" style="margin-right:10px;text-decoration:none;color:inherit;">{{ r.title }}</a> 
+        {% endfor %} {% else %} <span style="color:#666;">최근 5분 내 신규 신고가 없습니다.</span> 
+        {% endif %} 
+      </div> 
+      </div>
+     </div> 
+    </div>
+
+
+<div class="notice-box" style="margin-top:8px;">
   <div class="notice-inner">
     <a href="{% url 'blog:stats_separ' %}" class="notice-main btn btn-primary"
       style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
@@ -17,15 +34,17 @@
 
 
 
+
 <div class="dashboard-header">
   <div class="dashboard-title-wrap">
-    <h2 class="dashboard-title">최근 신고 목록</h2>
-    <p class="dashboard-subtitle">최신 신고된 포스트</p>
+    <h2 class="dashboard-title">신고 목록</h2>
+    <p class="dashboard-subtitle">신고된 포스트</p>
   </div>
   {% if user.is_authenticated %}
   <a href="{% url 'blog:post_new' %}" class="btn btn-create">+ 새 신고 포스트 작성</a>
   {% endif %}
 </div>
+
 
 
 {% if posts %}

@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from .models import Post
 from .forms import PostForm
 from django.utils import timezone
+from datetime import timedelta
 import re
 from django.views.decorators.http import require_POST
 
@@ -51,10 +52,16 @@ def post_list(request):
         separ_count = 0
         illegal_count = 0
 
+    recent_posts = Post.objects.filter(
+        published_date__gte=timezone.now() - timedelta(minutes=5),
+        published_date__lte=timezone.now()
+    ).order_by('-published_date')[:5]
+
     return render(request, 'blog/post_list.html', {
         'posts': posts,
         'separ_count': separ_count,
         'illegal_count': illegal_count,
+        'recent_posts': recent_posts,
     })
 
 
