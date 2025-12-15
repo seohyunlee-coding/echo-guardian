@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.checkbox.MaterialCheckBox;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -60,6 +61,17 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         } else {
             holder.imageViewItem.setImageDrawable(null);
         }
+
+        // 체크박스 상태 바인딩 (recycling 안전하게 처리)
+        holder.checkboxDone.setOnCheckedChangeListener(null);
+        holder.checkboxDone.setChecked(post.isDone());
+        holder.checkboxDone.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (post.isDone() != isChecked) {
+                post.setDone(isChecked);
+                // TODO: 필요시 여기서 DB/SharedPreferences에 저장하거나 콜백으로 상위에 알릴 수 있습니다.
+                Log.d(TAG, "Post id=" + post.getId() + " done=" + isChecked);
+            }
+        });
 
         // 아이템 클릭 시 상세 화면으로 이동
         holder.itemView.setOnClickListener(v -> {
@@ -120,6 +132,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         TextView textTitle;
         TextView textDate;
         TextView textBody;
+        MaterialCheckBox checkboxDone; // 변경된 타입
 
         public ImageViewHolder(View itemView) {
             super(itemView);
@@ -127,6 +140,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             textTitle = itemView.findViewById(R.id.textTitle);
             textDate = itemView.findViewById(R.id.textDate);
             textBody = itemView.findViewById(R.id.textBody);
+            checkboxDone = itemView.findViewById(R.id.checkboxDone); // 초기화
         }
     }
 }

@@ -1,16 +1,14 @@
 package com.example.imageblog;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.text.Spanned;
-import android.content.Intent;
-import android.view.inputmethod.EditorInfo;
-import android.view.KeyEvent;
-import android.widget.EditText;
-import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.text.HtmlCompat;
@@ -41,15 +39,18 @@ public class MainActivate extends AppCompatActivity {
     private static final String TAG = "MainActivate";
     public static final int REQ_VIEW_POST = 1001; // 상세 보기/편집 요청 코드
     TextView textView;
+    TextView tvUsername;
     RecyclerView recyclerView;
-    MaterialButton btnLoad;
-    MaterialButton btnSave;
-    EditText etSearch; // 추가: 검색 입력
-    ImageButton btnSearch; // 추가: 검색 버튼
+    MaterialButton btnLogin; // 툴바의 로그인 버튼
+    MaterialButton btnRegister; // 툴바의 회원가입 버튼
+    MaterialButton btnLogout; // 로그아웃 버튼
+    MaterialButton btnAddPost; // 새 신고 포스트 작성 버튼
+    LinearLayout buttonGroupGuest; // 로그인 전 버튼 그룹
+    LinearLayout buttonGroupUser; // 로그인 후 버튼 그룹
     String site_url = "https://cwijiq.pythonanywhere.com"; // 변경된 API 호스트
     Thread fetchThread;
     String lastRawJson = null; // 디버깅용으로 원시 JSON을 저장
-    //PutPost taskUpload;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,9 +66,25 @@ public class MainActivate extends AppCompatActivity {
             }
         }
 
+        // 뷰 초기화
         textView = findViewById(R.id.textView);
+        tvUsername = findViewById(R.id.tv_username);
         recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // 버튼 그룹 초기화
+        buttonGroupGuest = findViewById(R.id.button_group_guest);
+        buttonGroupUser = findViewById(R.id.button_group_user);
+
+        // 버튼들 초기화
+        btnLogin = findViewById(R.id.btn_login);
+        btnRegister = findViewById(R.id.btn_register);
+        btnLogout = findViewById(R.id.btn_logout);
+        btnAddPost = findViewById(R.id.btn_add_post);
+
+        // LinearLayoutManager로 1열 리스트 표시 (요청사항에 따라)
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setHasFixedSize(true);
 
         // 백그라운드에서 토큰을 미리 가져와서 첫 요청 시 인터셉터가 블로킹하는 시간을 줄입니다.
         new Thread(() -> {
@@ -78,51 +95,89 @@ public class MainActivate extends AppCompatActivity {
             }
         }).start();
 
-        // 버튼 참조 (XML의 onClick은 그대로 사용)
-        btnLoad = findViewById(R.id.btn_load);
-        btnSave = findViewById(R.id.btn_save);
+        // 버튼 클릭 리스너 설정
+        setupButtonListeners();
 
-        // 검색 뷰 초기화
-        etSearch = findViewById(R.id.etSearch);
-        btnSearch = findViewById(R.id.btn_search);
-        btnSearch.setOnClickListener(v -> performSearch());
-        etSearch.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                performSearch();
-                return true;
-            }
-            return false;
+        // 로그인 상태 확인 및 UI 업데이트
+        updateUI();
+
+        // 초기 상태: 자동으로 데이터 로드 시작
+        recyclerView.setVisibility(View.GONE);
+        textView.setText("데이터를 불러오는 중...");
+
+        // 자동으로 데이터 로드 시작
+        startFetch(site_url + "/api/posts");
+
+        Log.d(TAG, "onCreate: 자동 데이터 로드 시작");
+    }
+
+    private void setupButtonListeners() {
+        // 로그인 버튼
+        btnLogin.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivate.this, LoginActivity.class);
+            startActivity(intent);
         });
 
-        // ...changed: 초기에는 게시글을 즉시 불러오지 않고, RecyclerView를 숨깁니다...
-        recyclerView.setVisibility(View.GONE);
-        textView.setText("동기화 버튼을 눌러 게시글을 불러오세요.");
+        // 회원가입 버튼
+        btnRegister.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivate.this, RegisterActivity.class);
+            startActivity(intent);
+        });
 
-        Log.d(TAG, "onCreate: 초기 상태, 자동 로드 없이 대기합니다.");
-        // 자동 로드 제거: startFetch 호출 없음
+        // 로그아웃 버튼
+        btnLogout.setOnClickListener(v -> {
+            logout();
+        });
+
+        // 새 신고 포스트 작성 버튼
+        btnAddPost.setOnClickListener(v -> {
+            Intent intent = new Intent(this, NewPostActivity.class);
+            startActivityForResult(intent, REQ_VIEW_POST);
+        });
+    }
+
+    private void updateUI() {
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        String username = prefs.getString("username", "");
+
+        if (isLoggedIn) {
+            // 로그인 상태: 사용자 정보 표시
+            buttonGroupGuest.setVisibility(View.GONE);
+            buttonGroupUser.setVisibility(View.VISIBLE);
+            btnAddPost.setVisibility(View.VISIBLE);
+            tvUsername.setText("안녕하세요, " + username + "님");
+        } else {
+            // 비로그인 상태: 로그인/회원가입 버튼 표시
+            buttonGroupGuest.setVisibility(View.VISIBLE);
+            buttonGroupUser.setVisibility(View.GONE);
+            btnAddPost.setVisibility(View.GONE);
+        }
+    }
+
+    private void logout() {
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.apply();
+
+        Toast.makeText(this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+        updateUI();
     }
 
     public void onClickDownload(View v) {
-// 수동으로 버튼 눌렀을 때 재요청
         Log.d(TAG, "onClickDownload: 버튼 눌림, 데이터 로드 시작");
         if (fetchThread != null && fetchThread.isAlive()) {
             fetchThread.interrupt();
         }
-        // 로딩 시작 시 기존 목록 숨기고 상태 표시
         recyclerView.setVisibility(View.GONE);
         textView.setText("로딩 중...");
-        // 중복 요청 방지: 버튼 비활성화
-        if (btnLoad != null) {
-            btnLoad.setEnabled(false);
-            btnLoad.setAlpha(0.6f);
-        }
         startFetch(site_url + "/api/posts"); // 사용자 제공 엔드포인트 사용
         Toast.makeText(getApplicationContext(), "Download", Toast.LENGTH_LONG).show();
     }
+
     public void onClickUpload(View v) {
-        // NewPostActivity를 열어 사용자가 이미지/제목/본문을 입력하고 업로드하도록 함
         Intent intent = new Intent(this, NewPostActivity.class);
-        // startActivityForResult로 열어 업로드 성공 시 리프레시를 받도록 함
         startActivityForResult(intent, REQ_VIEW_POST);
     }
 
@@ -261,15 +316,6 @@ public class MainActivate extends AppCompatActivity {
             if (lastRawJson != null && !lastRawJson.isEmpty()) {
                 Log.d(TAG, "rawJson when empty: " + (lastRawJson.length() > 1000 ? lastRawJson.substring(0, 1000) + "..." : lastRawJson));
             }
-             // 동기화 완료/실패 후 버튼 다시 활성화
-             if (btnLoad != null) {
-                 btnLoad.setEnabled(true);
-                 btnLoad.setAlpha(1f);
-             }
-             if (btnSearch != null) {
-                 btnSearch.setEnabled(true);
-                 btnSearch.setAlpha(1f);
-             }
             Log.d(TAG, "onPostsFetched: 게시글 없음");
         } else {
             String html = "이미지 로드 성공! &nbsp;&nbsp;&nbsp; 총 글 개수: <b><font color='#FF424242'>" + posts.size() + "개</font></b>";
@@ -279,15 +325,6 @@ public class MainActivate extends AppCompatActivity {
             recyclerView.setVisibility(View.VISIBLE);
             ImageAdapter adapter = new ImageAdapter(posts);
             recyclerView.setAdapter(adapter);
-            // 동기화 완료 후 버튼 다시 활성화
-            if (btnLoad != null) {
-                btnLoad.setEnabled(true);
-                btnLoad.setAlpha(1f);
-            }
-            if (btnSearch != null) {
-                btnSearch.setEnabled(true);
-                btnSearch.setAlpha(1f);
-            }
             Log.d(TAG, "onPostsFetched: RecyclerView에 adapter 적용 완료");
         }
     }
@@ -303,10 +340,6 @@ public class MainActivate extends AppCompatActivity {
             // UI 상태: 숨기고 로딩 표시
             recyclerView.setVisibility(View.GONE);
             textView.setText("로딩 중...");
-            if (btnLoad != null) {
-                btnLoad.setEnabled(false);
-                btnLoad.setAlpha(0.6f);
-            }
             startFetch(site_url + "/api/posts");
         }
     }
@@ -314,6 +347,9 @@ public class MainActivate extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 로그인 상태가 변경되었을 수 있으므로 UI 업데이트
+        updateUI();
+
         // 토큰이 서버에서 무효화되었다고 표시된 경우 사용자에게 알림
         try {
             if (AuthHelper.isTokenInvalid(this)) {
@@ -331,35 +367,8 @@ public class MainActivate extends AppCompatActivity {
         }
     }
 
-    // 검색 실행: etSearch의 텍스트로 search API 호출
+    // 검색 기능은 현재 레이아웃에서 제거되어 performSearch는 유지하되 etSearch 관련 참조를 사용하지 않습니다.
     private void performSearch() {
-        String q = etSearch == null ? "" : etSearch.getText().toString().trim();
-        if (q.isEmpty()) {
-            Toast.makeText(this, "검색어를 입력하세요.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            String enc = java.net.URLEncoder.encode(q, java.nio.charset.StandardCharsets.UTF_8.name());
-            String searchUrl = site_url + "/api/posts/search/?q=" + enc;
-            Log.d(TAG, "performSearch: url=" + searchUrl);
-            if (fetchThread != null && fetchThread.isAlive()) {
-                fetchThread.interrupt();
-            }
-            // UI 상태
-            recyclerView.setVisibility(View.GONE);
-            textView.setText("검색 중...");
-            if (btnLoad != null) {
-                btnLoad.setEnabled(false);
-                btnLoad.setAlpha(0.6f);
-            }
-            if (btnSearch != null) {
-                btnSearch.setEnabled(false);
-                btnSearch.setAlpha(0.6f);
-            }
-            startFetch(searchUrl);
-        } catch (Exception e) {
-            Log.w(TAG, "performSearch: encoding failed", e);
-            Toast.makeText(this, "검색어 인코딩 오류", Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(this, "검색 기능은 현재 비활성화되어 있습니다.", Toast.LENGTH_SHORT).show();
     }
 }

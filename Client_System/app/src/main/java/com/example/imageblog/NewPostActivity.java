@@ -9,7 +9,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -39,7 +38,6 @@ public class NewPostActivity extends AppCompatActivity {
     private EditText etTitle, etText;
     private ProgressBar progressBar;
     private Uri imageUri;
-    private TextView newPostInfo;
     private int postId = -1; // 편집 시 사용
 
     private ActivityResultLauncher<String> pickImageLauncher;
@@ -55,10 +53,6 @@ public class NewPostActivity extends AppCompatActivity {
         Button btnPick = findViewById(R.id.btnPickImage);
         Button btnSubmit = findViewById(R.id.btnSubmit);
         progressBar = findViewById(R.id.progressBar);
-        newPostInfo = findViewById(R.id.newPostInfo);
-
-        ImageButton btnClose = findViewById(R.id.newPostClose);
-        btnClose.setOnClickListener(v -> finish());
 
         // 인텐트에서 편집용 데이터가 있을 경우 필드 채우기
         Intent intent = getIntent();
@@ -78,7 +72,6 @@ public class NewPostActivity extends AppCompatActivity {
                             .load(image)
                             .apply(RequestOptions.bitmapTransform(new RoundedCorners(radiusPx)))
                             .into(imagePreview);
-                    newPostInfo.setText("기존 이미지");
                 } catch (Exception e) {
                     Log.w(TAG, "failed to load provided image", e);
                 }
@@ -98,7 +91,6 @@ public class NewPostActivity extends AppCompatActivity {
 
                 // 파일 이름 표시
                 String name = getDisplayName(uri);
-                newPostInfo.setText(Objects.requireNonNullElse(name, ""));
             }
         });
 

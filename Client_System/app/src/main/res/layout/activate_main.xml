@@ -5,82 +5,129 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
+    android:background="#F8F9FA"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
     tools:context=".MainActivate">
 
+    <!-- Top toolbar: title + auth buttons -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="110dp"
+        android:layout_height="80dp"
         android:background="@color/white"
-        android:elevation="0dp">
+        android:elevation="2dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:layout_marginStart="-16dp"
+        android:layout_marginEnd="-16dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
-            <!-- 타이틀 -->
-            <TextView
-                android:id="@+id/toolbar_title"
+            <LinearLayout
+                android:id="@+id/toolbar_title_group"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/toolbar_title"
-                android:lines="2"
-                android:ellipsize="end"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif-black"
-                android:textSize="38sp"
-                android:lineSpacingExtra="-6dp"
-                android:textColor="@color/black"
+                android:orientation="vertical"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintBottom_toBottomOf="parent">
 
-            <!-- 버튼 그룹 -->
+                <TextView
+                    android:id="@+id/toolbar_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_title"
+                    android:textStyle="bold"
+                    android:textSize="20sp"
+                    android:textColor="@color/accent_green" />
+
+                <TextView
+                    android:id="@+id/toolbar_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_subtitle"
+                    android:textSize="11sp"
+                    android:textColor="@color/dark_gray"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+
+            <!-- 로그인 전 버튼들 -->
             <LinearLayout
-                android:id="@+id/button_group"
+                android:id="@+id/button_group_guest"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginEnd="15dp"
+                android:visibility="visible"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent">
 
-                <!-- 동기화 버튼 -->
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_load"
+                    android:id="@+id/btn_login"
                     android:layout_width="wrap_content"
-                    android:layout_height="53dp"
-                    android:onClick="onClickDownload"
-                    android:text="@string/btn_sync"
-                    android:textColor="@color/black"
-                    android:textSize="16sp"
-                    app:backgroundTint="@android:color/white"
-                    app:cornerRadius="10dp"
-                    app:strokeColor="@color/light_gray"
-                    app:strokeWidth="1dp"
-                    android:layout_marginEnd="8dp"
-                    android:elevation="0dp"
-                    app:pressedTranslationZ="4dp"/>
-
-                <!-- 새 글 버튼 -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_save"
-                    android:layout_width="wrap_content"
-                    android:layout_height="53dp"
-                    android:onClick="onClickUpload"
-                    android:text="@string/btn_new_post"
+                    android:layout_height="40dp"
+                    android:text="@string/btn_login"
                     android:textColor="@color/white"
-                    android:textSize="16sp"
-                    app:backgroundTint="@color/button_dark"
-                    app:cornerRadius="10dp"
-                    app:strokeColor="@color/button_dark"
-                    app:strokeWidth="0dp"
+                    android:textSize="13sp"
+                    app:backgroundTint="@color/accent_green"
+                    app:cornerRadius="6dp"
+                    android:layout_marginEnd="6dp"
                     android:elevation="0dp"
-                    app:pressedTranslationZ="6dp"/>
+                    android:minWidth="60dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_register"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="@string/btn_register"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    app:backgroundTint="@color/button_dark"
+                    app:cornerRadius="6dp"
+                    android:elevation="0dp"
+                    android:minWidth="60dp" />
+
+            </LinearLayout>
+
+            <!-- 로그인 후 사용자 정보 -->
+            <LinearLayout
+                android:id="@+id/button_group_user"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:id="@+id/tv_username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/greeting_default"
+                    android:textSize="13sp"
+                    android:textColor="@color/dark_gray"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_logout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="@string/logout"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    app:backgroundTint="@color/button_dark"
+                    app:cornerRadius="6dp"
+                    android:elevation="0dp"
+                    android:minWidth="50dp" />
 
             </LinearLayout>
 
@@ -88,67 +135,166 @@
 
     </com.google.android.material.appbar.MaterialToolbar>
 
-    <!-- thin divider under toolbar -->
-    <View
+    <!-- Notification / alert card -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#FFDDDDDD" />
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="12dp"
+        app:cardElevation="2dp"
+        app:cardUseCompatPadding="true"
+        app:cardBackgroundColor="@color/light_green_bg">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/notif_text"
+                android:textColor="@color/dark_gray"
+                android:paddingStart="0dp"
+                android:paddingEnd="12dp"
+                android:textSize="13sp"
+                android:lineHeight="18dp" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Statistics summary card -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        android:layout_marginBottom="20dp"
+        app:cardElevation="2dp"
+        app:cardUseCompatPadding="true"
+        app:cardBackgroundColor="@color/white">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stats_recycle_label"
+                    android:textColor="@color/dark_gray"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stats_recycle_count"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_green"
+                    android:textSize="18sp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="@color/light_gray"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stats_dump_label"
+                    android:textColor="@color/dark_gray"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stats_dump_count"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_green"
+                    android:textSize="18sp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Status TextView -->
     <TextView
         android:id="@+id/textView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/placeholder_text"
-        android:textColor="@android:color/black"
-        android:textSize="14sp"
-        android:paddingTop="20dp"
-        android:paddingBottom="12dp"
-        android:paddingStart="13dp"
-        android:paddingEnd="13dp" />
+        android:text=""
+        android:textSize="13sp"
+        android:textColor="@color/dark_gray"
+        android:paddingBottom="8dp" />
 
-    <!-- 검색창 추가: 텍스트 입력 + 검색 버튼 -->
+    <!-- Section title with add button -->
     <LinearLayout
-        android:id="@+id/search_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:layout_marginBottom="8dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:paddingBottom="12dp">
 
-        <EditText
-            android:id="@+id/etSearch"
+        <TextView
+            android:id="@+id/section_title"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="@string/hint_search"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:autofillHints="none"
-            android:background="@drawable/search_edit_bg" />
+            android:text="@string/section_title"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/black" />
 
-        <ImageButton
-            android:id="@+id/btn_search"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_search"
-            android:contentDescription="@string/cd_search" />
+        <!-- 새 신고 포스트 작성 버튼 (로그인 후에만 표시) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_add_post"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="@string/add_post"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            app:backgroundTint="@color/accent_green"
+            app:cornerRadius="8dp"
+            android:elevation="0dp"
+            android:visibility="gone" />
 
     </LinearLayout>
 
-    <!-- RecyclerView: 게시글 목록 표시 -->
+    <!-- RecyclerView: 게시글 목록 표시 (Grid으로 표시되도록 코드에서 GridLayoutManager 사용) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp" />
+        android:paddingTop="4dp"
+        android:paddingBottom="16dp" />
 
 </LinearLayout>

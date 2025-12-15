@@ -12,4 +12,8 @@
     <color name="light_gray">#FFCCCCCC</color>
     <!-- Button fill color for primary action -->
     <color name="button_dark">#FF2E2E2E</color>
+
+    <!-- New colors for dashboard design -->
+    <color name="accent_green">#2FAF6E</color>
+    <color name="light_green_bg">#E8F7EF</color>
 </resources>

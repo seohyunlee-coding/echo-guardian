@@ -7,6 +7,7 @@ public class Post {
     private String text;
     private String publishedDate;
     private String imageUrl;
+    private boolean done = false; // 처리 완료 상태 추가
 
     // 기존 생성자(호환성 유지를 위해 그대로 둠)
     public Post(String author, String title, String text, String publishedDate, String imageUrl) {
@@ -49,5 +50,14 @@ public class Post {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    // 처리 완료 상태 접근자
+    public boolean isDone() {
+        return done;
+    }
+
+    public void setDone(boolean done) {
+        this.done = done;
     }
 }

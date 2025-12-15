@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Button heights centrally defined -->
+    <dimen name="button_height_large">64dp</dimen>
+    <dimen name="button_height_small">40dp</dimen>
+</resources>
+

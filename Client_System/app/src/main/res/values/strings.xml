@@ -4,7 +4,8 @@
     <string name="btn_sync">동기화</string>
     <string name="btn_new_post">이미지 게시</string>
     <string name="placeholder_text">…</string>
-    <string name="toolbar_title">image\nblog</string>
+    <string name="toolbar_title_old">image
+blog</string>
     <string name="close">닫기</string>
     <string name="detail_image_desc">상세 이미지</string>
     <string name="label_body">글 내용</string>
@@ -14,4 +15,63 @@
     <string name="submit">게시</string>
     <string name="hint_search">검색어를 입력하세요</string>
     <string name="cd_search">검색</string>
+
+    <!-- New strings for updated layout -->
+    <string name="app_title">Echo Guardian</string>
+    <string name="app_subtitle">분리수거장 모니터링</string>
+    <string name="btn_login">로그인</string>
+    <string name="btn_register">회원가입</string>
+    <string name="notif_text">⚠️ 신규 발생 알림   최근 5분 내 신규 신고가 없습니다.</string>
+    <string name="notif_icon_desc">알림 아이콘</string>
+
+    <string name="stats_recycle_label">분리수거 오류:</string>
+    <string name="stats_recycle_count">3건</string>
+    <string name="stats_dump_label">무단 투기 감지:</string>
+    <string name="stats_dump_count">1건</string>
+
+    <string name="section_title">신고 목록</string>
+
+    <!-- Card defaults -->
+    <string name="card_title_default">무단 투기 감지</string>
+    <string name="card_body_default">감지된 항목: chair, bicycle, dining table, tv</string>
+    <string name="card_date_default">2025년 12월 15일 1234</string>
+    <string name="card_status_done">처리완료</string>
+    <string name="card_image_desc">게시 이미지</string>
+
+    <!-- Register/Login strings -->
+    <string name="logo_desc">로고</string>
+    <string name="register_title">회원가입</string>
+    <string name="register_subtitle">새로운 계정을 만들어보세요</string>
+    <string name="label_username">사용자 이름</string>
+    <string name="hint_username">사용자 이름을 입력하세요</string>
+    <string name="label_password">비밀번호</string>
+    <string name="hint_password">비밀번호를 입력하세요</string>
+    <string name="label_password_confirm">비밀번호 확인</string>
+    <string name="hint_password_confirm">비밀번호를 다시 입력하세요</string>
+    <string name="already_have_account">이미 계정이 있으신가요?</string>
+    <string name="copyright">© - Echo Guardian</string>
+
+    <!-- Added strings for activate_main -->
+    <string name="greeting_default">안녕하세요</string>
+    <string name="logout">로그아웃</string>
+    <string name="add_post">+ 새 신고 포스트 작성</string>
+
+    <!-- Post detail and edit screen strings -->
+    <string name="post_edit_title">포스트 수정</string>
+    <string name="post_detail_title">무단 투기 감지</string>
+    <string name="author_format">작성자: %s</string>
+    <string name="detected_items">감지된 항목: chair, bicycle, dining table, tv</string>
+    <string name="btn_edit">수정</string>
+    <string name="btn_delete">삭제</string>
+    <string name="back_to_list">← 목록으로 돌아가기</string>
+    <string name="user_greeting_format">안녕하세요, %s님</string>
+    <string name="current_image">현재 이미지:</string>
+    <string name="no_file_selected">선택된 파일 없음</string>
+    <string name="btn_save">저장</string>
+    <string name="btn_cancel">취소</string>
+    <string name="image_label">이미지</string>
+    <string name="content_label">내용</string>
+    <string name="title_label">제목</string>
+    <string name="file_select">파일 선택</string>
+
 </resources>

@@ -32,13 +32,10 @@ public class PostDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_post_detail);
 
         TextView headerTitle = findViewById(R.id.headerTitle);
-        ImageButton btnClose = findViewById(R.id.btnClose);
         TextView bodyView = findViewById(R.id.detailBody);
         TextView dateView = findViewById(R.id.detailDate);
         ImageView imageView = findViewById(R.id.detailImage);
         TextView labelBody = findViewById(R.id.labelBody);
-
-        btnClose.setOnClickListener(v -> finish());
 
         Intent intent = getIntent();
         if (intent != null) {
