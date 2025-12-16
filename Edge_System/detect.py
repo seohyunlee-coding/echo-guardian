@@ -166,6 +166,14 @@ def run(
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
+    # 사용자 요청: 감지할 클래스 화이트리스트
+    ALLOWED_NAMES = {
+        # person/animals/objects list (user-provided)
+        'tie','handbag','suitcase','umbrella','baseball bat','skateboard','baseballglove','tennis racket',
+        'bottle','wine glass','cup','fork','knife','spoon','bowl','banana','apple','sandwich','orange',
+        'broccoli','carrot','hot dog','pizza','cake',
+        'chair','bicycle','dining table','tv','laptop'
+    }
     # initialize ChangeDetection after names are available (may perform network auth)
     try:
         cd = ChangeDetection(names)
@@ -254,16 +262,23 @@ def run(
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
-                # Print results
+                # Print results (only allowed classes)
                 for c in det[:, 5].unique():
-                    n = (det[:, 5] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    cls_name = names[int(c)]
+                    if cls_name not in ALLOWED_NAMES:
+                        continue
+                    n = int((det[:, 5] == c).sum())  # detections per class
+                    s += f"{n} {cls_name}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
-                    detected[int(cls)] = 1  # mark class detected for this image
                     c = int(cls)  # integer class
-                    label = names[c] if hide_conf else f"{names[c]}"
+                    cls_name = names[c]
+                    # skip classes not in whitelist
+                    if cls_name not in ALLOWED_NAMES:
+                        continue
+                    detected[c] = 1  # mark class detected for this image
+                    label = cls_name if hide_conf else f"{cls_name}"
                     confidence = float(conf)
                     confidence_str = f"{confidence:.2f}"
 

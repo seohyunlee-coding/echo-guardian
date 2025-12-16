@@ -351,14 +351,16 @@ body {
 
 .post-detail-image-wrap {
   width: 100%;
-  max-height: 500px;
-  overflow: hidden;
+  /* Allow original image height; do not crop */
+  max-height: none;
+  overflow: visible;
 }
 
 .post-detail-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  /* Show the image at its original aspect ratio and size up to container width */
+  width: auto;
+  height: auto;
+  max-width: 100%;
   display: block;
 }
 
