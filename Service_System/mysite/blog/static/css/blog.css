@@ -351,17 +351,17 @@ body {
 
 .post-detail-image-wrap {
   width: 100%;
-  /* Allow original image height; do not crop */
   max-height: none;
   overflow: visible;
+  text-align: center;
 }
 
 .post-detail-image {
-  /* Show the image at its original aspect ratio and size up to container width */
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  display: block;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100vw !important;
+  max-height: 80vh !important;
+  display: inline-block;
 }
 
 .post-detail-content {

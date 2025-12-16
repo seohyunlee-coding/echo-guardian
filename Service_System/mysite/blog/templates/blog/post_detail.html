@@ -12,7 +12,9 @@
 
   {% if post.image %}
   <div class="post-detail-image-wrap">
-    <img src="{{ post.image.url }}" alt="{{ post.title }}" class="post-detail-image">
+    <a href="{{ post.image.url }}" target="_blank" rel="noopener">
+      <img src="{{ post.image.url }}" alt="{{ post.title }}" class="post-detail-image">
+    </a>
   </div>
   {% endif %}
 
