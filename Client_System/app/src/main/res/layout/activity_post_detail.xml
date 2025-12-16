@@ -82,7 +82,7 @@
                 android:textColor="@color/black"
                 android:layout_marginBottom="8dp" />
 
-            <!-- 작성자 및 날짜 정보 -->
+            <!-- 날짜 정보 (작성자 제거됨) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -91,21 +91,12 @@
                 android:layout_marginBottom="24dp">
 
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="작성자: 1234"
-                    android:textSize="14sp"
-                    android:textColor="@color/dark_gray" />
-
-                <TextView
                     android:id="@+id/detailDate"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:text="2025년 12월 15일 12:07"
                     android:textSize="14sp"
-                    android:textColor="@color/dark_gray"
-                    android:layout_marginStart="16dp" />
+                    android:textColor="@color/dark_gray" />
 
             </LinearLayout>
 

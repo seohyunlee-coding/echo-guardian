@@ -103,6 +103,7 @@ public class MainActivate extends AppCompatActivity {
                 intent.putExtra("text", recentNotifPost.getText() == null ? "" : recentNotifPost.getText());
                 intent.putExtra("published", recentNotifPost.getPublishedDate() == null ? "" : recentNotifPost.getPublishedDate());
                 intent.putExtra("image", recentNotifPost.getImageUrl() == null ? "" : recentNotifPost.getImageUrl());
+                intent.putExtra("author", recentNotifPost.getAuthor() == null ? "" : recentNotifPost.getAuthor());
                 intent.putExtra("id", recentNotifPost.getId());
                 startActivityForResult(intent, REQ_VIEW_POST);
             } else {

@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.bumptech.glide.Glide;
@@ -48,7 +47,7 @@ public class PostDetailActivity extends AppCompatActivity {
     private TextView dateView;
     private ImageView imageView;
     private TextView labelBody;
-    private ActivityResultLauncher<Intent> editLauncher;
+    private androidx.activity.result.ActivityResultLauncher<Intent> editLauncher;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -83,7 +82,7 @@ public class PostDetailActivity extends AppCompatActivity {
             String intentText = intent.getStringExtra("text");
             String intentPublished = intent.getStringExtra("published");
             String intentImage = intent.getStringExtra("image");
-             postId = intent.getIntExtra("id", -1);
+            postId = intent.getIntExtra("id", -1);
 
             Log.d(TAG, "open detail for id=" + postId + ", title=" + intentTitle);
 
@@ -101,6 +100,7 @@ public class PostDetailActivity extends AppCompatActivity {
             } else {
                 dateView.setText("");
             }
+
             if (!fImage.isEmpty()) {
                 int radiusDp = 12;
                 int radiusPx = (int) (radiusDp * getResources().getDisplayMetrics().density + 0.5f);
@@ -210,6 +210,7 @@ public class PostDetailActivity extends AppCompatActivity {
                     else if (obj.has("imageUrl")) image = obj.optString("imageUrl", fallbackImage);
                     else image = fallbackImage;
 
+                    // (작성자 표시 제거) 제목/본문/날짜/이미지만 UI에 반영
                     runOnUiThread(() -> {
                         headerTitle.setText(title == null ? "" : title);
                         bodyView.setText(text == null ? "" : text);

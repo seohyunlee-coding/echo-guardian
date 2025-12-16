@@ -154,6 +154,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             intent.putExtra("text", post.getText() == null ? "" : post.getText());
             intent.putExtra("published", post.getPublishedDate() == null ? "" : post.getPublishedDate());
             intent.putExtra("image", post.getImageUrl() == null ? "" : post.getImageUrl());
+            intent.putExtra("author", post.getAuthor() == null ? "" : post.getAuthor());
             intent.putExtra("id", post.getId());
             // Activity 컨텍스트이면 startActivityForResult로 열어 삭제/수정 후 결과를 받을 수 있게 함
             if (ctx instanceof android.app.Activity) {
