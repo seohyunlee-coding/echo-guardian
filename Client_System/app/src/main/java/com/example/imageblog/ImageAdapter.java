@@ -15,16 +15,19 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
-    private final List<Post> posts;
+    private final List<Post> originalPosts; // 전체 데이터 원본
+    private final List<Post> posts; // 화면에 표시되는 필터된 리스트
     private static final String TAG = "ImageAdapter";
 
     public ImageAdapter(List<Post> posts) {
-        this.posts = posts;
+        this.originalPosts = posts == null ? new ArrayList<>() : new ArrayList<>(posts);
+        this.posts = posts == null ? new ArrayList<>() : new ArrayList<>(posts);
     }
 
     @NonNull
@@ -94,6 +97,36 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     @Override
     public int getItemCount() {
         return posts == null ? 0 : posts.size();
+    }
+
+    // 외부에서 새로운 데이터로 업데이트할 때 사용
+    public void updateData(List<Post> newPosts) {
+        originalPosts.clear();
+        posts.clear();
+        if (newPosts != null && !newPosts.isEmpty()) {
+            originalPosts.addAll(newPosts);
+            posts.addAll(newPosts);
+        }
+        notifyDataSetChanged();
+    }
+
+    // 간단한 텍스트 필터: 제목 또는 본문에 검색어가 포함된 항목만 표시
+    public void filter(String query) {
+        if (query == null) query = "";
+        String q = query.trim().toLowerCase(Locale.getDefault());
+        posts.clear();
+        if (q.isEmpty()) {
+            posts.addAll(originalPosts);
+        } else {
+            for (Post p : originalPosts) {
+                String t = p.getTitle() == null ? "" : p.getTitle();
+                String b = p.getText() == null ? "" : p.getText();
+                if (t.toLowerCase(Locale.getDefault()).contains(q) || b.toLowerCase(Locale.getDefault()).contains(q)) {
+                    posts.add(p);
+                }
+            }
+        }
+        notifyDataSetChanged();
     }
 
     // 날짜 문자열을 "2025년 10월 9일 9:31 오후" 형식으로 변환

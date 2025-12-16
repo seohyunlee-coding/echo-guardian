@@ -252,7 +252,7 @@
         android:text=""
         android:textSize="13sp"
         android:textColor="@color/dark_gray"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="4dp" />
 
     <!-- Section title with add button and sync button -->
     <LinearLayout
@@ -260,7 +260,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="12dp">
+        android:paddingBottom="6dp">
 
         <TextView
             android:id="@+id/section_title"
@@ -280,10 +280,10 @@
             android:layout_height="38dp"
             android:layout_marginEnd="8dp"
             android:backgroundTint="@color/black"
-            android:contentDescription="동기화"
-            android:text="동기화"
+            android:contentDescription="@string/btn_sync"
+            android:text="@string/btn_sync"
             android:textColor="@color/white"
-            android:textSize="10sp"
+            android:textSize="12sp"
             app:cornerRadius="6dp" />
 
         <!-- 새 신고 포스트 작성 버튼 (로그인 후에만 표시) -->
@@ -301,6 +301,57 @@
 
     </LinearLayout>
 
+    <!-- 검색창: 게시글 리스트 바로 위에 위치 (카드 스타일로 깔끔하게 정리) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/search_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        app:cardUseCompatPadding="true"
+        app:cardBackgroundColor="@android:color/transparent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="6dp"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/et_search"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="@drawable/search_edit_bg"
+                android:hint="@string/hint_search"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/dark_gray"
+                android:textColorHint="@color/light_gray"
+                android:importantForAutofill="no"
+                android:gravity="center_vertical" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_search"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/cd_search"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                app:backgroundTint="@color/accent_green"
+                app:cornerRadius="8dp"
+                android:minWidth="64dp" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- RecyclerView: 게시글 목록 표시 (Grid으로 표시되도록 코드에서 GridLayoutManager 사용) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -308,7 +359,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingTop="4dp"
-        android:paddingBottom="16dp" />
+        android:paddingTop="2dp"
+        android:paddingBottom="12dp" />
 
 </LinearLayout>

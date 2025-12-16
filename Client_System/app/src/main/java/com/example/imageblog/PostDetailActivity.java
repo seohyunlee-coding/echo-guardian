@@ -2,7 +2,6 @@ package com.example.imageblog;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.View;
@@ -13,9 +12,12 @@ import com.google.android.material.button.MaterialButton;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
@@ -25,22 +27,38 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.io.IOException;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+import org.json.JSONObject;
 
 public class PostDetailActivity extends AppCompatActivity {
     private static final String TAG = "PostDetailActivity";
-    private static final int REQ_EDIT_POST = 2001; // 추가: 편집 요청 코드
     private int postId = -1; // 게시글 id 저장
+
+    // UI references made fields so fetch method can update them
+    private TextView headerTitle;
+    private TextView bodyView;
+    private TextView dateView;
+    private ImageView imageView;
+    private TextView labelBody;
+    private ActivityResultLauncher<Intent> editLauncher;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_post_detail);
 
-        TextView headerTitle = findViewById(R.id.headerTitle);
-        TextView bodyView = findViewById(R.id.detailBody);
-        TextView dateView = findViewById(R.id.detailDate);
-        ImageView imageView = findViewById(R.id.detailImage);
-        TextView labelBody = findViewById(R.id.labelBody);
+        headerTitle = findViewById(R.id.headerTitle);
+        bodyView = findViewById(R.id.detailBody);
+        dateView = findViewById(R.id.detailDate);
+        imageView = findViewById(R.id.detailImage);
+        labelBody = findViewById(R.id.labelBody);
         // 헤더의 사용자명 표시
         TextView tvUsername = findViewById(R.id.headerUserText); // activity_post_detail.xml에서 해당 id로 변경 필요
         MaterialButton btnLogout = findViewById(R.id.btn_logout);
@@ -49,8 +67,8 @@ public class PostDetailActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
         boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
         String username = prefs.getString("username", "");
-        if (isLoggedIn && username != null && !username.isEmpty()) {
-            tvUsername.setText("안녕하세요, " + username + "님");
+        if (isLoggedIn && !username.isEmpty()) {
+            tvUsername.setText(getString(R.string.user_greeting_format, username));
             btnLogout.setVisibility(View.VISIBLE);
         } else {
             tvUsername.setText("");
@@ -60,30 +78,33 @@ public class PostDetailActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         if (intent != null) {
-            String title = intent.getStringExtra("title");
-            String text = intent.getStringExtra("text");
-            String published = intent.getStringExtra("published");
-            String image = intent.getStringExtra("image");
+            String intentTitle = intent.getStringExtra("title");
+            String intentText = intent.getStringExtra("text");
+            String intentPublished = intent.getStringExtra("published");
+            String intentImage = intent.getStringExtra("image");
             postId = intent.getIntExtra("id", -1);
 
-            Log.d(TAG, "open detail for id=" + postId + ", title=" + title);
+            Log.d(TAG, "open detail for id=" + postId + ", title=" + intentTitle);
 
-            headerTitle.setText(title == null ? "" : title);
-            bodyView.setText(text == null ? "" : text);
+            // make effectively-final copies for use inside lambdas
+            final String fTitle = intentTitle == null ? "" : intentTitle;
+            final String fText = intentText == null ? "" : intentText;
+            final String fPublished = intentPublished == null ? "" : intentPublished;
+            final String fImage = intentImage == null ? "" : intentImage;
 
-            // 날짜를 한국어 포맷으로 변환
-            if (published != null && !published.isEmpty()) {
-                dateView.setText(formatDateString(published));
+            // 먼저 인텐트로 받은 값을 임시로 표시(빠른 응답 제공)
+            headerTitle.setText(fTitle);
+            bodyView.setText(fText);
+            if (!fPublished.isEmpty()) {
+                dateView.setText(formatDateString(fPublished));
             } else {
                 dateView.setText("");
             }
-
-            // 이미지 로딩 - 둥근 모서리 적용
-            if (image != null && !image.isEmpty()) {
+            if (!fImage.isEmpty()) {
                 int radiusDp = 12;
                 int radiusPx = (int) (radiusDp * getResources().getDisplayMetrics().density + 0.5f);
                 Glide.with(this)
-                        .load(image)
+                        .load(fImage)
                         .apply(RequestOptions.bitmapTransform(new RoundedCorners(radiusPx))
                                 .placeholder(android.R.drawable.ic_menu_report_image))
                         .into(imageView);
@@ -91,8 +112,7 @@ public class PostDetailActivity extends AppCompatActivity {
                 imageView.setImageDrawable(null);
             }
 
-            // 본문이 비어있으면 레이블 숨기기
-            if (text == null || text.trim().isEmpty()) {
+            if (fText.trim().isEmpty()) {
                 labelBody.setVisibility(View.GONE);
                 bodyView.setVisibility(View.GONE);
             } else {
@@ -100,19 +120,32 @@ public class PostDetailActivity extends AppCompatActivity {
                 bodyView.setVisibility(View.VISIBLE);
             }
 
+            // 서버에서 최신 데이터를 가져와 UI 업데이트 (id가 유효할 때)
+            if (postId > 0) {
+                fetchPostDetails(postId, fTitle, fText, fPublished, fImage);
+            }
+
             // 추가: 수정/삭제 버튼 처리
             android.widget.Button btnEdit = findViewById(R.id.btnEditPost);
             android.widget.Button btnDelete = findViewById(R.id.btnDeletePost);
 
+            // Activity Result API 등록
+            editLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    setResult(RESULT_OK);
+                    finish();
+                }
+            });
+
             btnEdit.setOnClickListener(v -> {
                 // 편집 화면으로 이동: 기존 데이터를 전달
-                android.content.Intent editIntent = new android.content.Intent(this, NewPostActivity.class);
+                android.content.Intent editIntent = new android.content.Intent(this, EditPostActivity.class);
                 editIntent.putExtra("id", postId);
-                editIntent.putExtra("title", title == null ? "" : title);
-                editIntent.putExtra("text", text == null ? "" : text);
-                editIntent.putExtra("image", image == null ? "" : image);
-                // startActivityForResult로 열어 편집 완료 시 결과를 받을 수 있게 함
-                startActivityForResult(editIntent, REQ_EDIT_POST);
+                editIntent.putExtra("title", fTitle);
+                editIntent.putExtra("text", fText);
+                editIntent.putExtra("image", fImage);
+                // Activity Result API로 실행
+                editLauncher.launch(editIntent);
             });
 
             btnDelete.setOnClickListener(v -> {
@@ -130,16 +163,86 @@ public class PostDetailActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_EDIT_POST) {
-            if (resultCode == RESULT_OK) {
-                // 편집이 성공적으로 완료되었음을 상위(MainActivate)로 전달하기 위해 RESULT_OK로 종료
-                setResult(RESULT_OK);
-                finish();
+    // fetchPostDetails: 비동기 GET으로 최신 데이터를 받아 UI를 갱신
+    private void fetchPostDetails(int id, String fallbackTitle, String fallbackText, String fallbackPublished, String fallbackImage) {
+        OkHttpClient client = NetworkClient.getClient(this);
+        String url = "https://cwijiq.pythonanywhere.com/api/posts/" + id;
+        Request req = new Request.Builder().url(url).get().build();
+
+        client.newCall(req).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.w(TAG, "fetchPostDetails failed, using intent values", e);
+                // 폴백: 이미 인텐트로 표시한 값 유지
             }
-        }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                try {
+                    if (!response.isSuccessful()) {
+                        Log.w(TAG, "fetchPostDetails response not successful: " + response.code());
+                        response.close();
+                        return;
+                    }
+                    String body = response.body() != null ? response.body().string() : null;
+                    response.close();
+                    if (body == null || body.isEmpty()) {
+                        Log.w(TAG, "fetchPostDetails empty body");
+                        return;
+                    }
+                    JSONObject obj = new JSONObject(body);
+                    // API마다 필드명이 다를 수 있으므로 여러 키를 확인
+                    final String title = obj.has("title") ? obj.optString("title", fallbackTitle) : fallbackTitle;
+                    final String text;
+                    if (obj.has("text")) text = obj.optString("text", fallbackText);
+                    else if (obj.has("body")) text = obj.optString("body", fallbackText);
+                    else text = fallbackText;
+
+                    final String published;
+                    if (obj.has("published")) published = obj.optString("published", fallbackPublished);
+                    else if (obj.has("created")) published = obj.optString("created", fallbackPublished);
+                    else published = fallbackPublished;
+
+                    final String image;
+                    if (obj.has("image")) image = obj.optString("image", fallbackImage);
+                    else if (obj.has("image_url")) image = obj.optString("image_url", fallbackImage);
+                    else if (obj.has("imageUrl")) image = obj.optString("imageUrl", fallbackImage);
+                    else image = fallbackImage;
+
+                    runOnUiThread(() -> {
+                        headerTitle.setText(title == null ? "" : title);
+                        bodyView.setText(text == null ? "" : text);
+                        if (published != null && !published.isEmpty()) {
+                            dateView.setText(formatDateString(published));
+                        } else {
+                            dateView.setText("");
+                        }
+                        if (image != null && !image.isEmpty()) {
+                            int radiusDp = 12;
+                            int radiusPx = (int) (radiusDp * getResources().getDisplayMetrics().density + 0.5f);
+                            Glide.with(PostDetailActivity.this)
+                                    .load(image)
+                                    .apply(RequestOptions.bitmapTransform(new RoundedCorners(radiusPx))
+                                            .placeholder(android.R.drawable.ic_menu_report_image))
+                                    .into(imageView);
+                        } else {
+                            imageView.setImageDrawable(null);
+                        }
+
+                        if (text == null || text.trim().isEmpty()) {
+                            labelBody.setVisibility(View.GONE);
+                            bodyView.setVisibility(View.GONE);
+                        } else {
+                            labelBody.setVisibility(View.VISIBLE);
+                            bodyView.setVisibility(View.VISIBLE);
+                        }
+                    });
+
+                } catch (Exception e) {
+                    Log.e(TAG, "fetchPostDetails parse failed", e);
+                }
+            }
+        });
     }
 
     @Override
@@ -243,11 +346,13 @@ public class PostDetailActivity extends AppCompatActivity {
                     jsonParam.put("username", username);
                     jsonParam.put("password", password);
                     OutputStream os = conn.getOutputStream();
-                    os.write(jsonParam.toString().getBytes("UTF-8"));
+                    os.write(jsonParam.toString().getBytes(StandardCharsets.UTF_8));
                     os.close();
                     conn.getResponseCode();
                     conn.disconnect();
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    Log.w(TAG, "logout failed", e);
+                }
                 runOnUiThread(() -> {
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.clear();

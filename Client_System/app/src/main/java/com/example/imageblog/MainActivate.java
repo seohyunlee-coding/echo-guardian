@@ -9,6 +9,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.text.Spanned;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.text.HtmlCompat;
@@ -38,6 +41,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -54,11 +59,14 @@ public class MainActivate extends AppCompatActivity {
     MaterialButton btnLogout; // 로그아웃 버튼
     MaterialButton btnAddPost; // 새 신고 포스트 작성 버튼
     MaterialButton btnSync; // 동기화 버튼
+    MaterialButton btnSearch; // 검색 버튼
+    EditText etSearch; // 검색 입력창
+    ImageAdapter imageAdapter; // 어댑터 필드로 유지
     LinearLayout buttonGroupGuest; // 로그인 전 버튼 그룹
     LinearLayout buttonGroupUser; // 로그인 후 버튼 그룹
     String site_url = "https://cwijiq.pythonanywhere.com"; // 변경된 API 호스트
     Thread fetchThread;
-    String lastRawJson = null; // 디버깅용으로 원시 JSON을 저장
+    String lastRawJson = null; // 디버깅용으로 원시 JSON을 저장;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +87,10 @@ public class MainActivate extends AppCompatActivity {
         textView = findViewById(R.id.textView);
         tvUsername = findViewById(R.id.tv_username);
         recyclerView = findViewById(R.id.recyclerView);
+
+        // 검색 뷰 바인딩 (before listeners)
+        etSearch = findViewById(R.id.et_search);
+        btnSearch = findViewById(R.id.btn_search);
 
         // 버튼 그룹 초기화
         buttonGroupGuest = findViewById(R.id.button_group_guest);
@@ -153,6 +165,55 @@ public class MainActivate extends AppCompatActivity {
             recyclerView.setVisibility(View.GONE);
             textView.setText("로딩 중...");
             startFetch(site_url + "/api/posts");
+        });
+
+        // 검색 버튼 리스너: 서버 검색 API 호출
+        btnSearch.setOnClickListener(v -> {
+            String q = etSearch.getText() == null ? "" : etSearch.getText().toString().trim();
+            if (fetchThread != null && fetchThread.isAlive()) {
+                fetchThread.interrupt();
+            }
+            recyclerView.setVisibility(View.GONE);
+            textView.setText("검색 중...");
+            try {
+                if (q.isEmpty()) {
+                    startFetch(site_url + "/api/posts");
+                } else {
+                    String encoded = URLEncoder.encode(q, StandardCharsets.UTF_8.toString());
+                    startFetch(site_url + "/api/posts/search/?q=" + encoded);
+                }
+            } catch (Exception e) {
+                // 인코딩 예외 발생 시 기본 검색 호출
+                startFetch(site_url + "/api/posts/search/?q=" + q);
+            }
+        });
+
+        // 키보드의 검색(엔터) 버튼 처리 -> 서버 검색 API 호출
+        etSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                String q = etSearch.getText() == null ? "" : etSearch.getText().toString().trim();
+                if (fetchThread != null && fetchThread.isAlive()) {
+                    fetchThread.interrupt();
+                }
+                recyclerView.setVisibility(View.GONE);
+                textView.setText("검색 중...");
+                try {
+                    if (q.isEmpty()) {
+                        startFetch(site_url + "/api/posts");
+                    } else {
+                        String encoded = URLEncoder.encode(q, StandardCharsets.UTF_8.toString());
+                        startFetch(site_url + "/api/posts/search/?q=" + encoded);
+                    }
+                } catch (Exception e) {
+                    startFetch(site_url + "/api/posts/search/?q=" + q);
+                }
+
+                // 키보드 숨기기
+                InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (imm != null) imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                return true;
+            }
+            return false;
         });
     }
 
@@ -398,8 +459,12 @@ public class MainActivate extends AppCompatActivity {
             textView.setText(sp, TextView.BufferType.SPANNABLE);
             // 게시글이 있을 땐 리스트 보이고 어댑터 적용
             recyclerView.setVisibility(View.VISIBLE);
-            ImageAdapter adapter = new ImageAdapter(posts);
-            recyclerView.setAdapter(adapter);
+            if (imageAdapter == null) {
+                imageAdapter = new ImageAdapter(posts);
+                recyclerView.setAdapter(imageAdapter);
+            } else {
+                imageAdapter.updateData(posts);
+            }
             Log.d(TAG, "onPostsFetched: RecyclerView에 adapter 적용 완료");
         }
     }

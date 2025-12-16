@@ -48,8 +48,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class NewPostActivity extends AppCompatActivity {
-    private static final String TAG = "NewPostActivity";
+public class EditPostActivity extends AppCompatActivity {
+    private static final String TAG = "EditPostActivity";
     private static final int REQ_READ_MEDIA = 1001;
     private ImageView imagePreview;
     private EditText etTitle, etText;
@@ -73,7 +73,7 @@ public class NewPostActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
 
         // 헤더의 사용자명 표시
-        TextView tvUsername = findViewById(R.id.headerUserText); // activity_new_post.xml에서 해당 id로 변경 필요
+        TextView tvUsername = findViewById(R.id.headerUserText);
         MaterialButton btnLogout = findViewById(R.id.btn_logout);
         // 로그인 정보 표시
         SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
@@ -97,11 +97,13 @@ public class NewPostActivity extends AppCompatActivity {
             String text = intent.getStringExtra("text");
             String image = intent.getStringExtra("image");
 
-            // 페이지 타이틀 설정: 편집이면 수정하기, 아니면 새 작성
-            if (postId >= 0) {
-                tvPageTitle.setText(getString(R.string.post_edit_title));
-            } else {
-                tvPageTitle.setText(getString(R.string.add_post));
+            // 이 액티비티는 편집 전용이므로 항상 "수정하기"로 설정
+            tvPageTitle.setText("수정하기");
+
+            if (postId < 0) {
+                Toast.makeText(this, "유효하지 않은 편집 대상입니다.", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
             }
 
             if (title != null) etTitle.setText(title);
@@ -120,27 +122,26 @@ public class NewPostActivity extends AppCompatActivity {
                 }
             }
         } else {
-            // 인텐트가 없으면 기본 타이틀은 새 작성
-            tvPageTitle.setText(getString(R.string.add_post));
+            // 인텐트가 없으면 편집으로 사용할 수 없음
+            tvPageTitle.setText("수정하기");
+            Toast.makeText(this, "편집할 게시글 정보가 없습니다.", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
 
         pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
             if (uri != null) {
                 imageUri = uri;
-                // Glide로 이미지 로드하고 둥근 모서리 적용
                 int radiusDp = 12;
                 int radiusPx = (int) (radiusDp * getResources().getDisplayMetrics().density + 0.5f);
                 Glide.with(this)
                         .load(uri)
                         .apply(RequestOptions.bitmapTransform(new RoundedCorners(radiusPx)))
                         .into(imagePreview);
-
-                // 파일 이름이 필요하면 getDisplayName(uri)를 사용하세요 (현재 사용 안 함)
             }
         });
 
         btnPick.setOnClickListener(v -> {
-            // 런타임 권한 확인 (Android 33 이상: READ_MEDIA_IMAGES)
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQ_READ_MEDIA);
             } else {
@@ -164,30 +165,26 @@ public class NewPostActivity extends AppCompatActivity {
         btnSubmit.setEnabled(false);
 
         new Thread(() -> {
-            OkHttpClient baseClient = NetworkClient.getClient(NewPostActivity.this);
-            // 업로드는 파일 크기에 따라 오래 걸릴 수 있으므로 쓰기 타임아웃을 늘린 전용 클라이언트 사용
+            OkHttpClient baseClient = NetworkClient.getClient(EditPostActivity.this);
             OkHttpClient clientForUpload = baseClient.newBuilder()
                     .writeTimeout(120, TimeUnit.SECONDS)
                     .build();
 
             try {
-                // 1) 토큰 확보: SharedPreferences -> AuthHelper -> (옵션) 하드코드
                 SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
                 String stored = prefs.getString("token", null);
                 String token;
                 if (stored != null && !stored.isEmpty()) {
                     token = stored.startsWith("Token ") ? stored : ("Token " + stored);
                 } else {
-                    String authHelperToken = AuthHelper.getToken(NewPostActivity.this);
+                    String authHelperToken = AuthHelper.getToken(EditPostActivity.this);
                     if (authHelperToken != null && !authHelperToken.isEmpty()) {
                         token = authHelperToken.startsWith("Token ") ? authHelperToken : ("Token " + authHelperToken);
                     } else {
-                        // 최후의 수단: 샘플 토큰 (개발/테스트용)
                         token = "Token 4d571c89d156921c3d20cfc59298df353846cae8";
                     }
                 }
 
-                // 게시글 생성 엔드포인트 URL
                 String baseUrl = "https://cwijiq.pythonanywhere.com/api_root/Post/";
                 boolean isEdit = postId >= 0;
 
@@ -195,9 +192,7 @@ public class NewPostActivity extends AppCompatActivity {
 
                 String authorId = String.valueOf(userId);
 
-                // 만약 수정 모드이면 PATCH로 부분 업데이트 수행 (이미지 변경은 서버 설정에 따라 지원되지 않을 수 있음)
                 if (isEdit) {
-                    // 빌드할 JSON 객체
                     org.json.JSONObject json = new org.json.JSONObject();
                     try {
                         if (title != null && !title.isEmpty()) json.put("title", title);
@@ -207,18 +202,16 @@ public class NewPostActivity extends AppCompatActivity {
                     }
 
                     if (json.length() == 0) {
-                        // 수정할 내용 없음
                         runOnUiThread(() -> {
                             progressBar.setVisibility(View.GONE);
                             btnSubmit.setEnabled(true);
-                            Toast.makeText(NewPostActivity.this, "수정할 내용이 없습니다.", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(EditPostActivity.this, "수정할 내용이 없습니다.", Toast.LENGTH_SHORT).show();
                         });
                         return;
                     }
 
-                    // 이미지 선택되어 있으면 사용자에게 안내
                     if (imageUri != null) {
-                        runOnUiThread(() -> Toast.makeText(NewPostActivity.this, "편집 시 이미지 변경은 현재 지원되지 않을 수 있습니다. 이미지 변경을 원하면 새 게시글로 업로드하세요.", Toast.LENGTH_LONG).show());
+                        runOnUiThread(() -> Toast.makeText(EditPostActivity.this, "편집 시 이미지 변경은 현재 지원되지 않을 수 있습니다. 이미지 변경을 원하면 새 게시글로 업로드하세요.", Toast.LENGTH_LONG).show());
                     }
 
                     RequestBody patchBody = RequestBody.create(json.toString(), okhttp3.MediaType.parse("application/json; charset=utf-8"));
@@ -240,11 +233,11 @@ public class NewPostActivity extends AppCompatActivity {
                         progressBar.setVisibility(View.GONE);
                         btnSubmit.setEnabled(true);
                         if (patchSuccess) {
-                            Toast.makeText(NewPostActivity.this, "수정 성공", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(EditPostActivity.this, "수정 성공", Toast.LENGTH_SHORT).show();
                             setResult(RESULT_OK);
                             finish();
                         } else {
-                            new AlertDialog.Builder(NewPostActivity.this)
+                            new AlertDialog.Builder(EditPostActivity.this)
                                     .setTitle("수정 실패")
                                     .setMessage("HTTP " + patchCode + "\n" + patchBodyStr)
                                     .setPositiveButton("확인", null)
@@ -254,7 +247,6 @@ public class NewPostActivity extends AppCompatActivity {
                     return;
                 }
 
-                // 2) userId가 없으면 사용자 정보 조회 시도
                 if (userId == -1) {
                     Request userInfoRequest = new Request.Builder()
                             .url("https://cwijiq.pythonanywhere.com/api/auth/user/")
@@ -292,7 +284,6 @@ public class NewPostActivity extends AppCompatActivity {
                     }
                 }
 
-                // 3) multipart 빌드
                 MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM)
                         .addFormDataPart("author", authorId)
                         .addFormDataPart("title", title)
@@ -347,37 +338,34 @@ public class NewPostActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     btnSubmit.setEnabled(true);
                     if (success) {
-                        Toast.makeText(NewPostActivity.this, "게시 성공", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(EditPostActivity.this, "게시 성공", Toast.LENGTH_SHORT).show();
                         setResult(RESULT_OK);
                         finish();
                     } else {
-                        // 개발 편의를 위해 상세 에러를 다이얼로그로 표시
                         String message = "HTTP " + respCode + "\n" + respBody;
-                        new AlertDialog.Builder(NewPostActivity.this)
+                        new AlertDialog.Builder(EditPostActivity.this)
                                 .setTitle("업로드 실패")
                                 .setMessage(message)
                                 .setPositiveButton("확인", null)
                                 .show();
-                        Toast.makeText(NewPostActivity.this, "게시 실패: " + respBody, Toast.LENGTH_LONG).show();
+                        Toast.makeText(EditPostActivity.this, "게시 실패: " + respBody, Toast.LENGTH_LONG).show();
                     }
                 });
 
             } catch (Exception e) {
                 Log.e(TAG, "upload failed", e);
-                // 스택트레이스를 문자열로 변환
                 StringWriter sw = new StringWriter();
                 e.printStackTrace(new PrintWriter(sw));
                 String stack = sw.toString();
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     btnSubmit.setEnabled(true);
-                    // 예외 내용을 다이얼로그로 표시
-                    new AlertDialog.Builder(NewPostActivity.this)
+                    new AlertDialog.Builder(EditPostActivity.this)
                             .setTitle("업로드 예외")
                             .setMessage(e.getClass().getSimpleName() + ": " + e.getMessage() + "\n\n" + stack)
                             .setPositiveButton("확인", null)
                             .show();
-                    Toast.makeText(NewPostActivity.this, "업로드 중 오류 발생: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(EditPostActivity.this, "업로드 중 오류 발생: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
@@ -423,8 +411,8 @@ public class NewPostActivity extends AppCompatActivity {
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.clear();
                     editor.apply();
-                    Toast.makeText(NewPostActivity.this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(NewPostActivity.this, LoginActivity.class);
+                    Toast.makeText(EditPostActivity.this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(EditPostActivity.this, LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                     finish();
@@ -435,7 +423,7 @@ public class NewPostActivity extends AppCompatActivity {
             editor.clear();
             editor.apply();
             Toast.makeText(this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(NewPostActivity.this, LoginActivity.class);
+            Intent intent = new Intent(EditPostActivity.this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
@@ -471,3 +459,4 @@ public class NewPostActivity extends AppCompatActivity {
         }
     }
 }
+

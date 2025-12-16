@@ -73,9 +73,10 @@
 
             <!-- 포스트 수정 타이틀 -->
             <TextView
+                android:id="@+id/tvPageTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="포스트 수정"
+                android:text="@string/add_post"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/black"
