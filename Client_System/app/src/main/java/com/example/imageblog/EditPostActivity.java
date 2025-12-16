@@ -58,6 +58,9 @@ public class EditPostActivity extends AppCompatActivity {
     private int postId = -1; // 편집 시 사용
     private int userId = -1; // 사용자 ID 저장
 
+    // 기존 이미지 URL만 필요
+    private String existingImageUrl = null;
+
     private ActivityResultLauncher<String> pickImageLauncher;
 
     @Override
@@ -105,6 +108,9 @@ public class EditPostActivity extends AppCompatActivity {
                 finish();
                 return;
             }
+
+            // 기존 이미지 저장
+            existingImageUrl = image;
 
             if (title != null) etTitle.setText(title);
             if (text != null) etText.setText(text);
@@ -193,6 +199,70 @@ public class EditPostActivity extends AppCompatActivity {
                 String authorId = String.valueOf(userId);
 
                 if (isEdit) {
+                    // 편집: 이미지 변경이 있으면 multipart PATCH로 파일 전송
+                    if (imageUri != null) {
+                        MultipartBody.Builder mBuilder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+                        if (title != null) mBuilder.addFormDataPart("title", title);
+                        if (text != null) mBuilder.addFormDataPart("text", text);
+
+                        try (InputStream is = getContentResolver().openInputStream(imageUri)) {
+                            if (is != null) {
+                                byte[] data = toByteArray(is);
+                                String mime = getContentResolver().getType(imageUri);
+                                if (mime == null) mime = "application/octet-stream";
+                                MediaType mediaType = MediaType.parse(mime);
+
+                                String filename = "upload_image";
+                                try (android.database.Cursor cursor = getContentResolver().query(imageUri, null, null, null, null)) {
+                                    if (cursor != null) {
+                                        int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                                        if (nameIndex != -1 && cursor.moveToFirst()) {
+                                            filename = cursor.getString(nameIndex);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    Log.w(TAG, "filename lookup failed", e);
+                                }
+
+                                RequestBody fileBody = RequestBody.create(data, mediaType);
+                                mBuilder.addFormDataPart("image", filename, fileBody);
+                            }
+                        }
+
+                        RequestBody multipartBody = mBuilder.build();
+                        Request patchReq = new Request.Builder()
+                                .url(url)
+                                .addHeader("Authorization", token)
+                                .patch(multipartBody)
+                                .build();
+
+                        Response patchResp = clientForUpload.newCall(patchReq).execute();
+                        int patchCode = patchResp.code();
+                        String patchBodyStr = patchResp.body() != null ? patchResp.body().string() : "";
+                        Log.e(TAG, "PATCH (multipart) Response Code: " + patchCode);
+                        Log.e(TAG, "PATCH (multipart) Response Body: " + patchBodyStr);
+                        final boolean patchSuccess = patchResp.isSuccessful();
+                        patchResp.close();
+
+                        runOnUiThread(() -> {
+                            progressBar.setVisibility(View.GONE);
+                            btnSubmit.setEnabled(true);
+                            if (patchSuccess) {
+                                Toast.makeText(EditPostActivity.this, "수정 성공", Toast.LENGTH_SHORT).show();
+                                setResult(RESULT_OK);
+                                finish();
+                            } else {
+                                new AlertDialog.Builder(EditPostActivity.this)
+                                        .setTitle("수정 실패")
+                                        .setMessage("HTTP " + patchCode + "\n" + patchBodyStr)
+                                        .setPositiveButton("확인", null)
+                                        .show();
+                            }
+                        });
+                        return;
+                    }
+
+                    // 이미지 변경이 없으면 JSON으로 PATCH
                     org.json.JSONObject json = new org.json.JSONObject();
                     try {
                         if (title != null && !title.isEmpty()) json.put("title", title);
@@ -208,10 +278,6 @@ public class EditPostActivity extends AppCompatActivity {
                             Toast.makeText(EditPostActivity.this, "수정할 내용이 없습니다.", Toast.LENGTH_SHORT).show();
                         });
                         return;
-                    }
-
-                    if (imageUri != null) {
-                        runOnUiThread(() -> Toast.makeText(EditPostActivity.this, "편집 시 이미지 변경은 현재 지원되지 않을 수 있습니다. 이미지 변경을 원하면 새 게시글로 업로드하세요.", Toast.LENGTH_LONG).show());
                     }
 
                     RequestBody patchBody = RequestBody.create(json.toString(), okhttp3.MediaType.parse("application/json; charset=utf-8"));
@@ -261,7 +327,7 @@ public class EditPostActivity extends AppCompatActivity {
                         String body = userInfoResponse.body() != null ? userInfoResponse.body().string() : "";
                         Log.d(TAG, "getUserInfo code=" + code + " body=" + body);
 
-                        if (userInfoResponse.isSuccessful() && body != null && !body.isEmpty()) {
+                        if (userInfoResponse.isSuccessful() && !body.isEmpty()) {
                             org.json.JSONObject userInfo = new org.json.JSONObject(body);
                             if (userInfo.has("user_id")) {
                                 userId = userInfo.optInt("user_id", -1);
@@ -459,4 +525,3 @@ public class EditPostActivity extends AppCompatActivity {
         }
     }
 }
-

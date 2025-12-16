@@ -154,6 +154,7 @@
             android:padding="16dp">
 
             <TextView
+                android:id="@+id/notifText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/notif_text"
@@ -184,11 +185,14 @@
             android:padding="16dp">
 
             <LinearLayout
+                android:id="@+id/separ_card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -200,6 +204,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:id="@+id/tv_stats_recycle_count"
                     android:text="@string/stats_recycle_count"
                     android:textStyle="bold"
                     android:textColor="@color/accent_green"
@@ -216,11 +221,14 @@
                 android:layout_marginEnd="12dp" />
 
             <LinearLayout
+                android:id="@+id/illegal_card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -232,6 +240,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:id="@+id/tv_stats_illegal_count"
                     android:text="@string/stats_dump_count"
                     android:textStyle="bold"
                     android:textColor="@color/accent_green"
@@ -276,7 +285,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSync"
             style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="63dp"
+            android:layout_width="69dp"
             android:layout_height="38dp"
             android:layout_marginEnd="8dp"
             android:backgroundTint="@color/black"

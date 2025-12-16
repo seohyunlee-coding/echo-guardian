@@ -15,6 +15,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -82,7 +83,7 @@ public class PostDetailActivity extends AppCompatActivity {
             String intentText = intent.getStringExtra("text");
             String intentPublished = intent.getStringExtra("published");
             String intentImage = intent.getStringExtra("image");
-            postId = intent.getIntExtra("id", -1);
+             postId = intent.getIntExtra("id", -1);
 
             Log.d(TAG, "open detail for id=" + postId + ", title=" + intentTitle);
 
@@ -144,9 +145,9 @@ public class PostDetailActivity extends AppCompatActivity {
                 editIntent.putExtra("title", fTitle);
                 editIntent.putExtra("text", fText);
                 editIntent.putExtra("image", fImage);
-                // Activity Result API로 실행
-                editLauncher.launch(editIntent);
-            });
+                 // Activity Result API로 실행
+                 editLauncher.launch(editIntent);
+             });
 
             btnDelete.setOnClickListener(v -> {
                 // 삭제 확인 다이얼로그
@@ -171,13 +172,13 @@ public class PostDetailActivity extends AppCompatActivity {
 
         client.newCall(req).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 Log.w(TAG, "fetchPostDetails failed, using intent values", e);
                 // 폴백: 이미 인텐트로 표시한 값 유지
             }
 
             @Override
-            public void onResponse(Call call, Response response) {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try {
                     if (!response.isSuccessful()) {
                         Log.w(TAG, "fetchPostDetails response not successful: " + response.code());
@@ -273,8 +274,29 @@ public class PostDetailActivity extends AppCompatActivity {
         new Thread(() -> {
             try {
                 okhttp3.OkHttpClient client = NetworkClient.getClient(PostDetailActivity.this);
+
+                // 토큰 확보
+                String token;
+                try {
+                    android.content.SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+                    String stored = prefs.getString("token", null);
+                    if (stored != null && !stored.isEmpty()) {
+                        token = stored.startsWith("Token ") ? stored : ("Token " + stored);
+                    } else {
+                        String authHelperToken = AuthHelper.getToken(PostDetailActivity.this);
+                        if (authHelperToken != null && !authHelperToken.isEmpty()) {
+                            token = authHelperToken.startsWith("Token ") ? authHelperToken : ("Token " + authHelperToken);
+                        } else {
+                            token = "Token 4d571c89d156921c3d20cfc59298df353846cae8";
+                        }
+                    }
+                } catch (Exception e) {
+                    token = "Token 4d571c89d156921c3d20cfc59298df353846cae8";
+                }
+
                 okhttp3.Request req = new okhttp3.Request.Builder()
                         .url(deleteUrl)
+                        .addHeader("Authorization", token)
                         .delete()
                         .build();
                 okhttp3.Response resp = client.newCall(req).execute();

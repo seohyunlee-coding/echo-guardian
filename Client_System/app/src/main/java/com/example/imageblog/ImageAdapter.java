@@ -1,11 +1,13 @@
 package com.example.imageblog;
 
+import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,12 +15,20 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.material.checkbox.MaterialCheckBox;
 
+import org.json.JSONObject;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
     private final List<Post> originalPosts; // 전체 데이터 원본
@@ -40,6 +50,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     @Override
     public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
         Post post = posts.get(position);
+        final int pos = position;
 
         // 제목과 내용
         holder.textTitle.setText(post.getTitle() == null ? "" : post.getTitle());
@@ -69,11 +80,70 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         holder.checkboxDone.setOnCheckedChangeListener(null);
         holder.checkboxDone.setChecked(post.getProcessed());
         holder.checkboxDone.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (post.getProcessed() != isChecked) {
-                post.setProcessed(isChecked);
-                // 필요시 여기서 DB/SharedPreferences에 저장하거나 콜백으로 상위에 알릴 수 있습니다.
-                Log.d(TAG, "Post id=" + post.getId() + " processed=" + isChecked);
-            }
+            // ignore if same
+            if (post.getProcessed() == isChecked) return;
+
+            // optimistic update
+            boolean old = post.getProcessed();
+            post.setProcessed(isChecked);
+            Log.d(TAG, "Post id=" + post.getId() + " processed=" + isChecked);
+
+            // Background network PATCH
+            Context ctx = holder.itemView.getContext();
+            new Thread(() -> {
+                OkHttpClient client = NetworkClient.getClient(ctx);
+                String token;
+                try {
+                    android.content.SharedPreferences prefs = ctx.getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
+                    String stored = prefs.getString("token", null);
+                    if (stored != null && !stored.isEmpty()) {
+                        token = stored.startsWith("Token ") ? stored : ("Token " + stored);
+                    } else {
+                        String authHelperToken = AuthHelper.getToken(ctx);
+                        if (authHelperToken != null && !authHelperToken.isEmpty()) {
+                            token = authHelperToken.startsWith("Token ") ? authHelperToken : ("Token " + authHelperToken);
+                        } else {
+                            token = "Token 4d571c89d156921c3d20cfc59298df353846cae8";
+                        }
+                    }
+                } catch (Exception e) {
+                    token = "Token 4d571c89d156921c3d20cfc59298df353846cae8";
+                }
+
+                String urlPatch = "https://cwijiq.pythonanywhere.com/api_root/Post/" + post.getId() + "/";
+                try {
+                    JSONObject json = new JSONObject();
+                    json.put("processed", isChecked);
+                    RequestBody body = RequestBody.create(json.toString(), MediaType.parse("application/json; charset=utf-8"));
+                    Request req = new Request.Builder()
+                            .url(urlPatch)
+                            .addHeader("Authorization", token)
+                            .patch(body)
+                            .build();
+
+                    Response resp = client.newCall(req).execute();
+                    int code = resp.code();
+                    String respBody = resp.body() != null ? resp.body().string() : "";
+                    resp.close();
+
+                    if (resp.isSuccessful()) {
+                        // success: optional toast
+                        holder.itemView.post(() -> Toast.makeText(ctx, "처리 상태 업데이트됨", Toast.LENGTH_SHORT).show());
+                    } else {
+                        // rollback on failure
+                        Log.w(TAG, "PATCH processed failed: " + code + " body=" + respBody);
+                        post.setProcessed(old);
+                        // re-bind this item on UI thread to restore checkbox and state
+                        holder.itemView.post(() -> notifyItemChanged(pos));
+                        holder.itemView.post(() -> Toast.makeText(ctx, "처리 상태 업데이트 실패: HTTP " + code, Toast.LENGTH_LONG).show());
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "patch processed exception", e);
+                    post.setProcessed(old);
+                    holder.itemView.post(() -> notifyItemChanged(pos));
+                    holder.itemView.post(() -> Toast.makeText(ctx, "처리 상태 업데이트 중 오류가 발생했습니다.", Toast.LENGTH_LONG).show());
+                }
+            }).start();
         });
 
         // 아이템 클릭 시 상세 화면으로 이동

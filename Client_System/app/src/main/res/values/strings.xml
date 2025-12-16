@@ -22,12 +22,13 @@ blog</string>
     <string name="btn_login">로그인</string>
     <string name="btn_register">회원가입</string>
     <string name="notif_text">⚠️ 신규 발생 알림   최근 5분 내 신규 신고가 없습니다.</string>
+    <string name="notif_title_format">⚠️ 신규 발생 알림 : %s</string>
     <string name="notif_icon_desc">알림 아이콘</string>
 
     <string name="stats_recycle_label">분리수거 오류:</string>
-    <string name="stats_recycle_count">3건</string>
+    <string name="stats_recycle_count"></string>
     <string name="stats_dump_label">무단 투기 감지:</string>
-    <string name="stats_dump_count">1건</string>
+    <string name="stats_dump_count"></string>
 
     <string name="section_title">신고 목록</string>
 
@@ -73,5 +74,8 @@ blog</string>
     <string name="content_label">내용</string>
     <string name="title_label">제목</string>
     <string name="file_select">파일 선택</string>
+    <!-- defaults for stats item layout -->
+    <string name="stats_item_name">Item</string>
+    <string name="stats_item_count">0</string>
 
 </resources>
