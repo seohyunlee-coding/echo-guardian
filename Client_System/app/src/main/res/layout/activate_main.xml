@@ -254,7 +254,7 @@
         android:textColor="@color/dark_gray"
         android:paddingBottom="8dp" />
 
-    <!-- Section title with add button -->
+    <!-- Section title with add button and sync button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -271,6 +271,20 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/black" />
+
+        <!-- 동기화 버튼: 까만색, 정사각형, 텍스트 '동기화' -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSync"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="63dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/black"
+            android:contentDescription="동기화"
+            android:text="동기화"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            app:cornerRadius="6dp" />
 
         <!-- 새 신고 포스트 작성 버튼 (로그인 후에만 표시) -->
         <com.google.android.material.button.MaterialButton

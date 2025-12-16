@@ -3,6 +3,8 @@ package com.example.imageblog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -10,6 +12,15 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
+
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class LoginActivity extends AppCompatActivity {
     private EditText etUsername;
@@ -52,23 +63,69 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // 간단한 로그인 처리 (실제 앱에서는 서버 통신)
-        // 여기서는 데모용으로 어떤 값이든 입력하면 로그인 성공으로 처리
-        saveLoginState(true, username);
-        Toast.makeText(this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+        // 로그인 API 호출
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://cwijiq.pythonanywhere.com/api/auth/login/");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                conn.setDoOutput(true);
 
-        // 메인 화면으로 이동
-        Intent intent = new Intent(LoginActivity.this, MainActivate.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
-    }
+                JSONObject jsonParam = new JSONObject();
+                jsonParam.put("username", username);
+                jsonParam.put("password", password);
 
-    private void saveLoginState(boolean isLoggedIn, String username) {
-        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean("isLoggedIn", isLoggedIn);
-        editor.putString("username", username);
-        editor.apply();
+                OutputStream os = conn.getOutputStream();
+                os.write(jsonParam.toString().getBytes("UTF-8"));
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    InputStream is = conn.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+                    is.close();
+                    JSONObject responseJson = new JSONObject(sb.toString());
+                    String token = responseJson.getString("token");
+                    int userId = responseJson.getInt("user_id");
+                    String usernameResp = responseJson.getString("username");
+                    String email = responseJson.getString("email");
+
+                    // SharedPreferences에 저장
+                    SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString("token", token);
+                    editor.putInt("user_id", userId);
+                    editor.putString("username", usernameResp);
+                    editor.putString("email", email);
+                    editor.putString("password", password); // 로그아웃용 비밀번호 저장
+                    editor.putBoolean("isLoggedIn", true); // 로그인 상태 저장
+                    editor.apply();
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        Toast.makeText(LoginActivity.this, "로그인 성공!", Toast.LENGTH_SHORT).show();
+                        // 메인 화면으로 이동
+                        Intent intent = new Intent(LoginActivity.this, MainActivate.class);
+                        startActivity(intent);
+                        finish();
+                    });
+                } else {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        Toast.makeText(LoginActivity.this, "로그인 실패: 아이디 또는 비밀번호를 확인하세요", Toast.LENGTH_SHORT).show();
+                    });
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Toast.makeText(LoginActivity.this, "네트워크 오류: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
     }
 }

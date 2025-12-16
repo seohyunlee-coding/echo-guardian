@@ -1,14 +1,17 @@
 package com.example.imageblog;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,11 +22,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Objects;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.bumptech.glide.request.RequestOptions;
+import com.google.android.material.button.MaterialButton;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -53,6 +60,22 @@ public class NewPostActivity extends AppCompatActivity {
         Button btnPick = findViewById(R.id.btnPickImage);
         Button btnSubmit = findViewById(R.id.btnSubmit);
         progressBar = findViewById(R.id.progressBar);
+
+        // 헤더의 사용자명 표시
+        TextView tvUsername = findViewById(R.id.headerUserText); // activity_new_post.xml에서 해당 id로 변경 필요
+        MaterialButton btnLogout = findViewById(R.id.btn_logout);
+        // 로그인 정보 표시
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        String username = prefs.getString("username", "");
+        if (isLoggedIn && username != null && !username.isEmpty()) {
+            tvUsername.setText("안녕하세요, " + username + "님");
+            btnLogout.setVisibility(View.VISIBLE);
+        } else {
+            tvUsername.setText("");
+            btnLogout.setVisibility(View.GONE);
+        }
+        btnLogout.setOnClickListener(v -> logout());
 
         // 인텐트에서 편집용 데이터가 있을 경우 필드 채우기
         Intent intent = getIntent();
@@ -268,6 +291,52 @@ public class NewPostActivity extends AppCompatActivity {
         }
         buffer.flush();
         return buffer.toByteArray();
+    }
+
+    private void logout() {
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String token = prefs.getString("token", null);
+        String username = prefs.getString("username", null);
+        String password = prefs.getString("password", null);
+        if (token != null && !token.isEmpty() && username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
+            new Thread(() -> {
+                try {
+                    URL url = new URL("https://cwijiq.pythonanywhere.com/api/auth/logout/");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Authorization", "Token " + token);
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    conn.setDoOutput(true);
+                    org.json.JSONObject jsonParam = new org.json.JSONObject();
+                    jsonParam.put("username", username);
+                    jsonParam.put("password", password);
+                    OutputStream os = conn.getOutputStream();
+                    os.write(jsonParam.toString().getBytes("UTF-8"));
+                    os.close();
+                    conn.getResponseCode();
+                    conn.disconnect();
+                } catch (Exception e) {}
+                runOnUiThread(() -> {
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.clear();
+                    editor.apply();
+                    Toast.makeText(NewPostActivity.this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(NewPostActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }).start();
+        } else {
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.clear();
+            editor.apply();
+            Toast.makeText(this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(NewPostActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+        }
     }
 
     @Override

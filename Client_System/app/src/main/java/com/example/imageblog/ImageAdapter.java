@@ -64,12 +64,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
         // 체크박스 상태 바인딩 (recycling 안전하게 처리)
         holder.checkboxDone.setOnCheckedChangeListener(null);
-        holder.checkboxDone.setChecked(post.isDone());
+        holder.checkboxDone.setChecked(post.getProcessed());
         holder.checkboxDone.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (post.isDone() != isChecked) {
-                post.setDone(isChecked);
-                // TODO: 필요시 여기서 DB/SharedPreferences에 저장하거나 콜백으로 상위에 알릴 수 있습니다.
-                Log.d(TAG, "Post id=" + post.getId() + " done=" + isChecked);
+            if (post.getProcessed() != isChecked) {
+                post.setProcessed(isChecked);
+                // 필요시 여기서 DB/SharedPreferences에 저장하거나 콜백으로 상위에 알릴 수 있습니다.
+                Log.d(TAG, "Post id=" + post.getId() + " processed=" + isChecked);
             }
         });
 

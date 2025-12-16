@@ -20,7 +20,7 @@
     {{ post.text|linebreaks }}
   </div>
 
-  {% if user.is_authenticated and user == post.author %}
+  {% if user.is_authenticated %}
   <div class="post-actions">
     <a href="{% url 'blog:post_edit' post.pk %}" class="btn btn-primary">수정</a>
     <a href="{% url 'blog:post_delete' post.pk %}" class="btn btn-danger">삭제</a>

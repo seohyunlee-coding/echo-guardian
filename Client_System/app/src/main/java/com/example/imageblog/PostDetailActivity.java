@@ -8,6 +8,11 @@ import android.widget.TextView;
 import android.view.View;
 import android.util.Log;
 import android.widget.Toast; // 추가: Toast import
+import android.content.SharedPreferences;
+import com.google.android.material.button.MaterialButton;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,6 +41,22 @@ public class PostDetailActivity extends AppCompatActivity {
         TextView dateView = findViewById(R.id.detailDate);
         ImageView imageView = findViewById(R.id.detailImage);
         TextView labelBody = findViewById(R.id.labelBody);
+        // 헤더의 사용자명 표시
+        TextView tvUsername = findViewById(R.id.headerUserText); // activity_post_detail.xml에서 해당 id로 변경 필요
+        MaterialButton btnLogout = findViewById(R.id.btn_logout);
+
+        // 로그인 정보 표시
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        String username = prefs.getString("username", "");
+        if (isLoggedIn && username != null && !username.isEmpty()) {
+            tvUsername.setText("안녕하세요, " + username + "님");
+            btnLogout.setVisibility(View.VISIBLE);
+        } else {
+            tvUsername.setText("");
+            btnLogout.setVisibility(View.GONE);
+        }
+        btnLogout.setOnClickListener(v -> logout());
 
         Intent intent = getIntent();
         if (intent != null) {
@@ -201,6 +222,52 @@ public class PostDetailActivity extends AppCompatActivity {
         } catch (ParseException e) {
             Log.w(TAG, "formatDateString: failed to parse date='" + rawDate + "'", e);
             return rawDate;
+        }
+    }
+
+    private void logout() {
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        String token = prefs.getString("token", null);
+        String username = prefs.getString("username", null);
+        String password = prefs.getString("password", null);
+        if (token != null && !token.isEmpty() && username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
+            new Thread(() -> {
+                try {
+                    URL url = new URL("https://cwijiq.pythonanywhere.com/api/auth/logout/");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Authorization", "Token " + token);
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    conn.setDoOutput(true);
+                    org.json.JSONObject jsonParam = new org.json.JSONObject();
+                    jsonParam.put("username", username);
+                    jsonParam.put("password", password);
+                    OutputStream os = conn.getOutputStream();
+                    os.write(jsonParam.toString().getBytes("UTF-8"));
+                    os.close();
+                    conn.getResponseCode();
+                    conn.disconnect();
+                } catch (Exception e) {}
+                runOnUiThread(() -> {
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.clear();
+                    editor.apply();
+                    Toast.makeText(PostDetailActivity.this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(PostDetailActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }).start();
+        } else {
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.clear();
+            editor.apply();
+            Toast.makeText(this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(PostDetailActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
         }
     }
 }

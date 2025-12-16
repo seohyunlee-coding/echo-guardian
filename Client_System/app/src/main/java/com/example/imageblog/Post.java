@@ -8,6 +8,7 @@ public class Post {
     private String publishedDate;
     private String imageUrl;
     private boolean done = false; // 처리 완료 상태 추가
+    private boolean processed = false; // 처리 완료 상태
 
     // 기존 생성자(호환성 유지를 위해 그대로 둠)
     public Post(String author, String title, String text, String publishedDate, String imageUrl) {
@@ -19,13 +20,14 @@ public class Post {
     }
 
     // id를 포함한 새로운 생성자
-    public Post(int id, String author, String title, String text, String publishedDate, String imageUrl) {
+    public Post(int id, String author, String title, String text, String publishedDate, String imageUrl, boolean processed) {
         this.id = id;
         this.author = author;
         this.title = title;
         this.text = text;
         this.publishedDate = publishedDate;
         this.imageUrl = imageUrl;
+        this.processed = processed;
     }
 
     public int getId() {
@@ -59,5 +61,12 @@ public class Post {
 
     public void setDone(boolean done) {
         this.done = done;
+    }
+
+    public boolean getProcessed() {
+        return processed;
+    }
+    public void setProcessed(boolean processed) {
+        this.processed = processed;
     }
 }

@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 
 from rest_framework import viewsets
 from rest_framework import generics
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .serializers import PostSerializer
 from django.db.models import Q
 
@@ -19,15 +20,18 @@ from django.db.models import Q
 class blogImage(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class PostList(generics.ListAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class PostSearch(generics.ListAPIView):
     serializer_class = PostSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         q = self.request.query_params.get('q', '')
@@ -40,10 +44,15 @@ class PostSearch(generics.ListAPIView):
 class PostDetail(generics.RetrieveAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 def post_list(request):
-    posts = Post.objects.filter(published_date__lte=timezone.now()).order_by('published_date')
+    q = request.GET.get('q', '')
+    posts = Post.objects.filter(published_date__lte=timezone.now())
+    if q:
+        posts = posts.filter(Q(title__icontains=q) | Q(text__icontains=q))
+    posts = posts.order_by('-published_date')
 
     try:
         separ_count = Post.objects.filter(title='분리수거 오류 감지').count()
@@ -62,6 +71,7 @@ def post_list(request):
         'separ_count': separ_count,
         'illegal_count': illegal_count,
         'recent_posts': recent_posts,
+        'q': q,
     })
 
 
@@ -89,8 +99,6 @@ def post_new(request):
 @login_required
 def post_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.user != post.author:
-        return redirect('blog:post_detail', pk=post.pk)
     
     if request.method == "POST":
         form = PostForm(request.POST, request.FILES, instance=post)
@@ -106,9 +114,6 @@ def post_edit(request, pk):
 @login_required
 def post_delete(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    if request.user != post.author:
-        return redirect('blog:post_detail', pk=post.pk)
-    
     if request.method == "POST":
         post.delete()
         return redirect('blog:post_list')
@@ -182,9 +187,7 @@ def stats_api_all(request):
 def toggle_processed(request, pk):
     """Toggle or set processed state for a post. Only author or staff can change."""
     post = get_object_or_404(Post, pk=pk)
-    if not (request.user.is_staff or request.user == post.author):
-        return JsonResponse({'error': 'forbidden'}, status=403)
-
+    # Allow any authenticated user to toggle processed state
     val = request.POST.get('processed')
     if val is None:
         post.processed = not post.processed

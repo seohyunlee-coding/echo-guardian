@@ -23,10 +23,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +53,7 @@ public class MainActivate extends AppCompatActivity {
     MaterialButton btnRegister; // 툴바의 회원가입 버튼
     MaterialButton btnLogout; // 로그아웃 버튼
     MaterialButton btnAddPost; // 새 신고 포스트 작성 버튼
+    MaterialButton btnSync; // 동기화 버튼
     LinearLayout buttonGroupGuest; // 로그인 전 버튼 그룹
     LinearLayout buttonGroupUser; // 로그인 후 버튼 그룹
     String site_url = "https://cwijiq.pythonanywhere.com"; // 변경된 API 호스트
@@ -80,6 +89,7 @@ public class MainActivate extends AppCompatActivity {
         btnRegister = findViewById(R.id.btn_register);
         btnLogout = findViewById(R.id.btn_logout);
         btnAddPost = findViewById(R.id.btn_add_post);
+        btnSync = findViewById(R.id.btnSync);
 
         // LinearLayoutManager로 1열 리스트 표시 (요청사항에 따라)
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -134,6 +144,16 @@ public class MainActivate extends AppCompatActivity {
             Intent intent = new Intent(this, NewPostActivity.class);
             startActivityForResult(intent, REQ_VIEW_POST);
         });
+
+        // 동기화 버튼
+        btnSync.setOnClickListener(v -> {
+            if (fetchThread != null && fetchThread.isAlive()) {
+                fetchThread.interrupt();
+            }
+            recyclerView.setVisibility(View.GONE);
+            textView.setText("로딩 중...");
+            startFetch(site_url + "/api/posts");
+        });
     }
 
     private void updateUI() {
@@ -157,12 +177,48 @@ public class MainActivate extends AppCompatActivity {
 
     private void logout() {
         SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.clear();
-        editor.apply();
+        String token = prefs.getString("token", null);
+        String username = prefs.getString("username", null);
+        String password = prefs.getString("password", null);
 
-        Toast.makeText(this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
-        updateUI();
+        if (token != null && !token.isEmpty() && username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
+            new Thread(() -> {
+                try {
+                    URL url = new URL("https://cwijiq.pythonanywhere.com/api/auth/logout/");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Authorization", "Token " + token);
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    conn.setDoOutput(true);
+
+                    org.json.JSONObject jsonParam = new org.json.JSONObject();
+                    jsonParam.put("username", username);
+                    jsonParam.put("password", password);
+
+                    OutputStream os = conn.getOutputStream();
+                    os.write(jsonParam.toString().getBytes("UTF-8"));
+                    os.close();
+
+                    int responseCode = conn.getResponseCode();
+                    conn.disconnect();
+                } catch (Exception e) {
+                    // 네트워크 오류 무시 (어차피 로컬 로그아웃)
+                }
+                runOnUiThread(() -> {
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.clear();
+                    editor.apply();
+                    Toast.makeText(MainActivate.this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+                    updateUI();
+                });
+            }).start();
+        } else {
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.clear();
+            editor.apply();
+            Toast.makeText(this, "로그아웃되었습니다", Toast.LENGTH_SHORT).show();
+            updateUI();
+        }
     }
 
     public void onClickDownload(View v) {
@@ -226,7 +282,8 @@ public class MainActivate extends AppCompatActivity {
                                 if (img.isEmpty()) img = root.optString("image_url", "");
                                 if (img.isEmpty()) img = root.optString("photo", "");
                                 String resolved = img.isEmpty() ? "" : resolveUrl(img);
-                                postList.add(new Post(id, author, title, text, published, resolved));
+                                boolean processed = root.optBoolean("processed", false);
+                                postList.add(new Post(id, author, title, text, published, resolved, processed));
                             } else {
                                 // try to find any array inside object
                                 Iterator<String> keys = root.keys();
@@ -249,17 +306,16 @@ public class MainActivate extends AppCompatActivity {
                             if (Thread.currentThread().isInterrupted()) return;
                             try {
                                 JSONObject obj = aryJson.getJSONObject(i);
-                                int id = obj.optInt("id", -1);
-                                String author = obj.optString("author", "");
-                                String title = obj.optString("title", "");
-                                String text = obj.optString("text", obj.optString("body", ""));
-                                String published = obj.optString("published_date", obj.optString("published", ""));
-                                String img = obj.optString("image", "");
-                                if (img.isEmpty()) img = obj.optString("image_url", "");
-                                if (img.isEmpty()) img = obj.optString("photo", "");
-                                String resolved = img.isEmpty() ? "" : resolveUrl(img);
-                                if (!resolved.isEmpty()) seen.add(resolved);
-                                postList.add(new Post(id, author, title, text, published, resolved));
+                                Post post = new Post(
+                                    obj.optInt("id", -1),
+                                    obj.optString("author", ""),
+                                    obj.optString("title", ""),
+                                    obj.optString("text", ""),
+                                    obj.optString("published_date", ""),
+                                    obj.optString("image", ""),
+                                    obj.optBoolean("processed", false)
+                                );
+                                postList.add(post);
                             } catch (JSONException je) {
                                 Log.w(TAG, "startFetch: 배열 요소 파싱 실패", je);
                             }
@@ -273,7 +329,7 @@ public class MainActivate extends AppCompatActivity {
                         if (m.find()) {
                             String found = m.group();
                             if (!seen.contains(found)) {
-                                Post p0 = new Post(-1, "", "", "", "", found);
+                                Post p0 = new Post(-1, "", "", "", "", found, false);
                                 postList.add(p0);
                             }
                         }
@@ -287,6 +343,25 @@ public class MainActivate extends AppCompatActivity {
             }
 
             // UI 업데이트
+            // 최신 게시글 순으로 정렬
+            Collections.sort(postList, new Comparator<Post>() {
+                @Override
+                public int compare(Post p1, Post p2) {
+                    String d1 = p1.getPublishedDate();
+                    String d2 = p2.getPublishedDate();
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.KOREA);
+                    try {
+                        // +09:00 등 타임존이 붙은 경우 제거
+                        if (d1 != null && d1.length() > 19) d1 = d1.substring(0, 19);
+                        if (d2 != null && d2.length() > 19) d2 = d2.substring(0, 19);
+                        long t1 = d1 != null ? sdf.parse(d1).getTime() : 0;
+                        long t2 = d2 != null ? sdf.parse(d2).getTime() : 0;
+                        return Long.compare(t2, t1); // 내림차순(최신순)
+                    } catch (ParseException e) {
+                        return 0;
+                    }
+                }
+            });
             final List<Post> finalPosts = postList;
             runOnUiThread(() -> onPostsFetched(finalPosts));
         });
