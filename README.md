@@ -117,6 +117,11 @@ cd ../../Client_System
 - PyTorch: https://pytorch.org
 - Django: https://www.djangoproject.com
 
+## ⚖️ 라이센스 License
+
+- This project uses [YOLOv5](https://github.com/ultralytics/yolov5) by Ultralytics, which is licensed under AGPL-3.0. As required by the AGPL-3.0 license terms, this project is also distributed under the same license.
+
+
 
 ## 👨‍💻 프로그래머 정보
 
