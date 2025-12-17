@@ -1,0 +1,5 @@
+서비스 URL
+https://cwijiq.pythonanywhere.com/
+
+소스코드 깃 주소
+https://github.com/seohyunlee-coding/echo-guardian
